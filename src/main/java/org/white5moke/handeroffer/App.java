@@ -1,6 +1,7 @@
 package org.white5moke.handeroffer;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 
@@ -24,23 +25,57 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Scanner;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
+import java.util.concurrent.atomic.AtomicInteger;
+
+class Txt {
+    public enum C {
+        RESET("\u001b[0m"),
+        BRIGHT_BLACK("\u001b[30;1m"),
+        BRIGHT_RED("\u001b[31;1m"),
+        BRIGHT_YELLOW("\u001b[33;1m"),
+        BRIGHT_BLUE("\u001b[34;1m"),
+        BRIGHT_MAGENTA("\u001b[35;1m"),
+        BRIGHT_CYAN("\u001b[36;1m"),
+        BRIGHT_WHITE("\u001b[37;1m"),
+        BLACK("\u001b[30m"),
+        RED("\u001b[31m"),
+        GREEN("\u001b[32m"),
+        YELLOW("\u001b[33m"),
+        BLUE("\u001b[34m"),
+        MAGENTA("\u001b[35m"),
+        GREEN_BG("\u001b[42m"),
+        RED_BG("\u001b[41;1m"),
+        WHITE_BG("\u001b[47;1m"),
+        MAGENTA_BG("\u001b[45;1m"),
+        CYAN("\u001b[36m"),
+        WHITE("\u001b[37m"),
+        CLEAR("\033[H\033[2J"),
+        NEW_LINE("\r\n");
+
+        private String code;
+        C(String code){
+            this.code = code;
+        }
+
+        public String get() {
+            return code;
+        }
+    }
+}
 
 public class App {
+    private Path home = Path.of(System.getProperty("user.home"), ".handoff");
+    private Scanner scan = new Scanner(System.in);
+    private List<Path> hashList;
+
     public App() throws Exception {
-        Path home = Path.of(System.getProperty("user.home"), ".handoff");
-
         while (true) {
-            Scanner scan = new Scanner(System.in);
-
-            System.out.print("> ");
+            System.out.print(Txt.C.GREEN.get() + "> ");
 
             String input = scan.nextLine().strip().toLowerCase();
 
             if (input.equals("bye")) {
-                scan.close();
-                System.exit(0);
+                sayGoodbye();
                 return;
             }
 
@@ -56,29 +91,57 @@ public class App {
                    echo(theMsg);
                }
                case "list" -> {
-                   List<Path> hashList = Files.list(home).sorted((f1, f2) -> Long.valueOf(f2.toFile().lastModified()).compareTo(f1.toFile().lastModified())).toList();
-                   hashList.forEach(h -> {
-                       String s = String.format(
-                               "%s @ %s",
-                               h.getFileName().toString(),
-                               Instant.ofEpochMilli(h.toFile().lastModified())
-                                       .atZone(ZoneId.of("UTC"))
-                                       .toLocalDateTime().toString()
-                               );
-
-                       System.out.println(s);
-                   });
-               }
-               case "use" -> {
-
+                   list();
                }
                case "gen" -> {
                    generateKey(theMsg);
                }
-               default -> {
+               case "use" -> {
+                   useKey(theMsg);
                }
+               default -> {}
            }
         }
+    }
+
+    private void useKey(String msg) {
+        try {
+            if(!StringUtils.isNumeric(msg)) {
+                System.out.println(Txt.C.RED.get() + "please, provide a number from the list" + Txt.C.RESET.get());
+            }
+        } catch(NumberFormatException | NullPointerException e) {
+            System.out.println(Txt.C.RED.get() + "something went wrong. `" + e.getMessage() + "`" + Txt.C.RESET.get());
+        }
+    }
+
+    private void sayGoodbye() {
+        hashList.clear();
+        System.out.println(Txt.C.BRIGHT_RED.get() + "exiting..." + Txt.C.RESET.get());
+        scan.close();
+        System.exit(0);
+    }
+
+    private void list() throws IOException {
+        hashList = Files.list(home).sorted((f1, f2) -> Long.valueOf(f2.toFile().lastModified()).compareTo(f1.toFile().lastModified())).toList();
+
+        AtomicInteger i = new AtomicInteger();
+        hashList.forEach(h -> {
+            String s = String.format(
+                    "%d) %s @ %s",
+                    i.get(),
+                    h.getFileName().toString(),
+                    Instant.ofEpochMilli(h.toFile().lastModified())
+                            .atZone(ZoneId.of("UTC"))
+                            .toLocalDateTime().toString()
+            );
+            i.getAndIncrement();
+
+            System.out.println(Txt.C.BRIGHT_BLUE.get() + s + Txt.C.RESET.get());
+        });
+
+        System.out.println(Txt.C.RED.get() + "select a hash, by using the command `use n`, `n` being the number preceeding the hash i.e. `1)`" + Txt.C.RESET.get());
+
+        return;
     }
 
     private void generateKey(String msg) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException, IOException {
