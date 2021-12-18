@@ -1,7 +1,6 @@
 package org.white5moke.handeroffer;
 
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 
@@ -99,19 +98,37 @@ public class App {
                case "use" -> {
                    useKey(theMsg);
                }
+               case "help" -> {
+                   System.out.println(Txt.C.BRIGHT_MAGENTA.get() + "help " + Txt.C.RESET.get() + ": help information.");
+                   System.out.println(Txt.C.BRIGHT_MAGENTA.get() + "echo " + Txt.C.RESET.get() + ": prints user input. " + Txt.C.BRIGHT_CYAN.get() + "`echo <any text string here>`");
+                   System.out.println(Txt.C.BRIGHT_MAGENTA.get() + "list " + Txt.C.RESET.get() + ": list all key documents. " + Txt.C.BRIGHT_CYAN.get() + "`list`");
+                   System.out.println(Txt.C.BRIGHT_MAGENTA.get() + "gen  " + Txt.C.RESET.get() + ": generate a new key document. " + Txt.C.BRIGHT_CYAN.get() + "`gen`");
+                   System.out.print(Txt.C.BRIGHT_MAGENTA.get() + "use  " + Txt.C.RESET.get() + ": designate currently used key document." + Txt.C.BRIGHT_CYAN.get() + " `use <paste key document hash here>`");
+                   System.out.println(Txt.C.RESET.get());
+               }
                default -> {}
            }
         }
     }
 
-    private void useKey(String msg) {
-        try {
-            if(!StringUtils.isNumeric(msg)) {
-                System.out.println(Txt.C.RED.get() + "please, provide a number from the list" + Txt.C.RESET.get());
-            }
-        } catch(NumberFormatException | NullPointerException e) {
-            System.out.println(Txt.C.RED.get() + "something went wrong. `" + e.getMessage() + "`" + Txt.C.RESET.get());
-        }
+    private void useKey(String msg) throws IOException {
+        hashList = Files.list(home).sorted((f1, f2) -> Long.valueOf(f2.toFile().lastModified()).compareTo(f1.toFile().lastModified())).toList();
+
+        AtomicInteger i = new AtomicInteger();
+        hashList.forEach(h -> {
+            System.out.println(
+                    String.format(
+                            "%d) %s @ %s",
+                            i.get(),
+                            h.getFileName().toString(),
+                            Instant.ofEpochMilli(h.toFile().lastModified())
+                                    .atZone(ZoneId.of("UTC"))
+                                    .toLocalDateTime().toString()
+                            )
+            );
+
+            i.getAndIncrement();
+        });
     }
 
     private void sayGoodbye() {
