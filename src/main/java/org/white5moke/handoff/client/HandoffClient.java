@@ -1,6 +1,7 @@
 package org.white5moke.handoff.client;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 
@@ -60,29 +61,51 @@ public class HandoffClient {
                     useKey(theMsg);
                 }
                 case "help" -> {
-                    System.out.println(Txt.C.BRIGHT_MAGENTA.get() + "help " + Txt.C.RESET.get() + ": help information.");
-                    System.out.println(Txt.C.BRIGHT_MAGENTA.get() + "echo " + Txt.C.RESET.get() + ": prints user input. " + Txt.C.BRIGHT_CYAN.get() + "`echo <any text string here>`");
-                    System.out.println(Txt.C.BRIGHT_MAGENTA.get() + "list " + Txt.C.RESET.get() + ": list all key documents. " + Txt.C.BRIGHT_CYAN.get() + "`list`");
-                    System.out.println(Txt.C.BRIGHT_MAGENTA.get() + "gen  " + Txt.C.RESET.get() + ": generate a new key document. " + Txt.C.BRIGHT_CYAN.get() + "`gen`");
-                    System.out.print(Txt.C.BRIGHT_MAGENTA.get() + "use  " + Txt.C.RESET.get() + ": designate currently used key document." + Txt.C.BRIGHT_CYAN.get() + " `use <paste key document hash here>`");
-                    System.out.println(Txt.C.RESET.get());
+                    help();
                 }
                 default -> {}
             }
         }
     }
 
-    private void useKey(String msg) throws IOException {
+    private void help() {
+        System.out.println(Txt.C.BRIGHT_MAGENTA.get() + "help " + Txt.C.RESET.get() + ": help information.");
+        System.out.println(Txt.C.BRIGHT_MAGENTA.get() + "echo " + Txt.C.RESET.get() + ": prints user input. "
+                + Txt.C.BRIGHT_CYAN.get() + "`echo <any text string here>`");
+        System.out.println(Txt.C.BRIGHT_MAGENTA.get() + "list " + Txt.C.RESET.get() + ": list all key documents. "
+                + Txt.C.BRIGHT_CYAN.get() + "`list`");
+        System.out.println(Txt.C.BRIGHT_MAGENTA.get() + "gen  " + Txt.C.RESET.get()
+                + ": generate a new key document. " + Txt.C.BRIGHT_CYAN.get() + "`gen`");
+        System.out.print(
+                Txt.C.BRIGHT_MAGENTA.get() + "use  " + Txt.C.RESET.get() + ": designate currently used key document."
+                        + Txt.C.BRIGHT_CYAN.get() + " `use <# from list>`");
+        System.out.println(Txt.C.RESET.get());
+    }
+
+    private void useKey(String msg) throws IOException, ArrayIndexOutOfBoundsException {
+        String[] arr = StringUtils.split(msg, StringUtils.SPACE);
+
+        // no empties, plz
+        if(msg.isEmpty()) return;
+
+        // no empty arrays either, bitch!
+        if(arr.length <= 0) return;
+
+        // no alphas
+        if(!StringUtils.isNumeric(arr[0].strip())) {
+            System.out.println(Txt.C.BRIGHT_RED.get() + "not a number =/" + Txt.C.RESET.get());
+            return;
+        }
+
+        int selection = Integer.parseInt(arr[0].strip());
+
         hashList = Files
                 .list(home)
                 .sorted((f1, f2) -> Long.valueOf(f2.toFile().lastModified()).compareTo(f1.toFile().lastModified()))
                 .toList();
 
-        System.out.print(Txt.C.GREEN.get() + "enter a number > " + Txt.C.RESET.get());
-        int selection = scan.nextInt();
-
         if(selection > hashList.size()-1 || selection < 0) {
-            System.out.println(Txt.C.BRIGHT_RED.get() + "not a valid selection." + Txt.C.RESET.get());
+            System.out.println(Txt.C.BRIGHT_RED.get() + "not a valid selection =(" + Txt.C.RESET.get());
         } else {
             Path g = hashList.get(selection);
             currentDocumentHash = g.getFileName().toString();
@@ -118,10 +141,11 @@ public class HandoffClient {
             System.out.println(Txt.C.BRIGHT_BLUE.get() + s + Txt.C.RESET.get());
         });
 
-        System.out.println(Txt.C.RED.get() + "select a hash, by using the command `use` and when prompted provide" +
-                " `n`, `n` being the number preceeding the hash i.e. `1)`" + Txt.C.RESET.get());
-
-        return;
+        if(!currentDocumentHash.isEmpty()) {
+            System.out.println(
+                    Txt.C.BRIGHT_RED.get() + "current key document: " + Txt.C.YELLOW.get() + "`"
+                            + currentDocumentHash + "`" + Txt.C.RESET.get());
+        }
     }
 
     private void generateKey(String msg) throws NoSuchAlgorithmException, InvalidKeyException,
