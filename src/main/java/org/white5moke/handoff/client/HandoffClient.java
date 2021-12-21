@@ -219,6 +219,13 @@ public class HandoffClient {
         }
     }
 
+    /**
+     * @param msg Generic string
+     * @throws NoSuchAlgorithmException
+     * @throws InvalidKeyException
+     * @throws SignatureException
+     * @throws IOException
+     */
     private void generateKey(String msg) throws NoSuchAlgorithmException, InvalidKeyException,
             SignatureException, IOException {
 
