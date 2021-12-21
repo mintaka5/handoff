@@ -31,7 +31,6 @@ use  : designate currently used key document. `use <# from list>`
 
 ---
 
-##### uses these dependencies:
-
-[![@vdmeer-asciitable](https://img.shields.io/badge/%40vdmeer-asciitable-lightgrey?style=for-the-badge)](https://github.com/vdmeer/asciitable)
-[![@dialex-JColor](https://img.shields.io/badge/%40dialex-JColor-red?style=for-the-badge)](https://github.com/dialex/JColor)
+![last-commit](https://img.shields.io/github/last-commit/white5moke/handoff?style=for-the-badge)
+![license: bsd-3-clause](https://img.shields.io/github/license/white5moke/handoff?style=for-the-badge) 
+![repo-size](https://img.shields.io/github/repo-size/white5moke/handoff?style=for-the-badge)

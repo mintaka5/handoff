@@ -13,7 +13,10 @@ import java.nio.file.StandardOpenOption;
 import java.security.*;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.List;
+import java.util.Scanner;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class HandoffClient {
@@ -315,7 +318,7 @@ public class HandoffClient {
         Files.createDirectories(storePath.getParent());
         Files.createFile(storePath);
 
-        //Files.write(storePath, keysJson.toString().getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE);
+        //Files.write(storePath, contents, StandardOpenOption.CREATE);
         Files.writeString(storePath, keysJson.toString(), StandardOpenOption.CREATE);
 
         System.out.println(String.format("key saved to document `%s`", storePath.toString()));
