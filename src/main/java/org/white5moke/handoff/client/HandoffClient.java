@@ -1,11 +1,5 @@
 package org.white5moke.handoff.client;
 
-import com.diogonunes.jcolor.AnsiFormat;
-import com.diogonunes.jcolor.Attribute;
-import de.vandermeer.asciitable.AT_Row;
-import de.vandermeer.asciitable.AsciiTable;
-import de.vandermeer.asciitable.CWC_LongestWord;
-import de.vandermeer.skb.interfaces.transformers.textformat.TextAlignment;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
@@ -21,8 +15,6 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static com.diogonunes.jcolor.Ansi.colorize;
 
 public class HandoffClient {
     private Path home = Path.of(System.getProperty("user.home"), ".handoff");
@@ -85,90 +77,45 @@ public class HandoffClient {
     }
 
     private void help() {
-        System.out.println(colorize("bye : exit the app.",
-                new AnsiFormat(Attribute.BRIGHT_GREEN_TEXT(), Attribute.BLACK_BACK())));
+        System.out.println("bye : exit the app.");
 
-        System.out.println(
-                colorize("cur : what is your current key document",
-                        new AnsiFormat(Attribute.BRIGHT_GREEN_TEXT(), Attribute.BLACK_BACK())) +
-                colorize("`cur`", new AnsiFormat(Attribute.BRIGHT_BLUE_TEXT(), Attribute.BLACK_BACK()))
-        );
+        System.out.println("cur : what is your current key document `cur`");
 
-        System.out.println(
-                colorize(
-                        "del : deletes all your key documents. be careful!",
-                        new AnsiFormat(Attribute.BRIGHT_GREEN_TEXT(),
-                                Attribute.BLACK_BACK())
-                ) +
-                colorize("`del`", new AnsiFormat(Attribute.BRIGHT_BLUE_TEXT(), Attribute.BLACK_BACK()))
-        );
+        System.out.println("del : deletes all your key documents. be careful! `del`");
 
-        System.out.println(
-                colorize("echo : prints user input.", new AnsiFormat(Attribute.BRIGHT_GREEN_TEXT(),
-                        Attribute.BLACK_BACK())) +
-                        colorize("`echo <any text string here>`",
-                                new AnsiFormat(Attribute.BRIGHT_BLUE_TEXT(), Attribute.BLACK_BACK()))
-        );
+        System.out.println("echo : prints user input. `echo <any text string here>`");
 
-        System.out.println(
-                colorize("gen : generate a new key document. message is optional.",
-                        new AnsiFormat(Attribute.BRIGHT_GREEN_TEXT(), Attribute.BLACK_BACK())) +
-                        colorize("`gen [<message>]`", new AnsiFormat(Attribute.BRIGHT_BLUE_TEXT(),
-                                Attribute.BLACK_BACK()))
-        );
+        System.out.println("gen : generate a new key document. message is optional. `gen [<message>]`");
 
-        System.out.println(colorize(
-                "help : help information.",
-                new AnsiFormat(Attribute.BRIGHT_GREEN_TEXT(), Attribute.BLACK_BACK())
-        ));
+        System.out.println("help : help information.");
 
-        System.out.println(
-                colorize("list : list all key documents. sorted by most recent first",
-                        new AnsiFormat(Attribute.BRIGHT_GREEN_TEXT(), Attribute.BLACK_BACK())) +
-                        colorize("`list`",
-                                new AnsiFormat(Attribute.BRIGHT_BLUE_TEXT(), Attribute.BLACK_BACK()))
-        );
+        System.out.println("list : list all key documents. sorted by most recent first `list`");
 
-        System.out.println(
-                colorize("peek : view the details of a key document",
-                        new AnsiFormat(Attribute.BRIGHT_GREEN_TEXT(), Attribute.BLACK_BACK())) +
-                        colorize("`peek <# from `list`>`",
-                                new AnsiFormat(Attribute.BRIGHT_BLUE_TEXT(), Attribute.BLACK_BACK()))
-        );
+        System.out.println("peek : view the details of a key document `peek <# from `list`>`");
 
-        System.out.println(
-                colorize("use : desigante currently used key document.",
-                        new AnsiFormat(Attribute.BRIGHT_GREEN_TEXT(), Attribute.BLACK_BACK())) +
-                        colorize("`use <# from `list`>`",
-                                new AnsiFormat(Attribute.BRIGHT_BLUE_TEXT(), Attribute.BLACK_BACK()))
-        );
+        System.out.println("use : designate currently used key document. `use <# from `list`>`");
     }
 
     private void delete() throws IOException {
         Files.list(home).forEach(f -> {
             try {
                 Files.delete(f);
-                System.out.println(Txt.C.BRIGHT_YELLOW.get() + "removed `" + f.getFileName().toString() + "`"
-                        + Txt.C.RESET.get());
+                System.out.println(String.format("removed `%s`", f.getFileName().toString()));
             } catch (IOException e) {
                 e.printStackTrace();
             }
         });
 
-        System.out.println(colorize("complete.",
-                new AnsiFormat(Attribute.BRIGHT_MAGENTA_TEXT(), Attribute.BLACK_BACK())));
+        System.out.println("complete.");
 
         currentDocumentHash = StringUtils.EMPTY;
     }
 
     private void current() throws IOException {
         if(currentDocumentHash.isEmpty()) {
-            System.out.println(colorize("no key document is active. " +
-                    "try `use #` command.",
-                    new AnsiFormat(Attribute.BRIGHT_RED_TEXT(), Attribute.BLACK_BACK())));
+            System.out.println("no key document is active. try `use #` command.");
         } else {
-            System.out.println(colorize(String.format("your active key document is `%s`", currentDocumentHash),
-                    new AnsiFormat(Attribute.BRIGHT_MAGENTA_TEXT(), Attribute.BLACK_BACK())));
+            System.out.println(String.format("your active key document is `%s`", currentDocumentHash));
 
             Path p = Path.of(home.toString(), currentDocumentHash);
             String keyDoc = Files.readString(p);
@@ -185,8 +132,7 @@ public class HandoffClient {
         if(arr.length <= 0) return;
 
         if(!StringUtils.isNumeric(arr[0].strip())) {
-            System.out.println(colorize("not a number! =/",
-                            new AnsiFormat(Attribute.BRIGHT_RED_TEXT(), Attribute.BLACK_BACK())));
+            System.out.println("not a number! =/");
 
             return;
         }
@@ -200,8 +146,7 @@ public class HandoffClient {
                 .toList();
 
         if(selection > hashList.size()-1 || selection < 0) {
-            System.out.println(colorize("not a valid selection =(",
-                    new AnsiFormat(Attribute.BRIGHT_RED_TEXT(), Attribute.BLACK_BACK())));
+            System.out.println("not a valid selection =(");
 
             return;
         }
@@ -209,36 +154,16 @@ public class HandoffClient {
         Path g = hashList.get(selection);
         currentDocumentHash = g.getFileName().toString();
 
-        System.out.println(colorize("peeking at key document `" + currentDocumentHash + "`",
-                new AnsiFormat(Attribute.BLUE_TEXT(), Attribute.BLACK_BACK())));
+        System.out.println(String.format("peeking at key document `%s`", currentDocumentHash));
 
         String content = Files.readString(Path.of(home.toString(), currentDocumentHash));
         JSONObject doc = new JSONObject(content);
-        //System.out.println(doc.toString(4));
 
-        AsciiTable at = new AsciiTable();
-        at.addRule();
-        at.addRow("message", doc.getString("msg"));
-        at.addRule();
-        AT_Row timeRow = at.addRow(
-                "timestamp",
-                Instant.ofEpochMilli(doc.getLong("time"))
-                        .atZone(ZoneId.of("UTC")).toLocalDateTime().toString()
-        );
-        timeRow.getCells().get(1).getContext().setTextAlignment(TextAlignment.CENTER);
-        at.addRule();
-        AT_Row factorRow = at.addRow(
-                "work factor", String.valueOf(doc.getJSONObject("pow").getLong("work")));
-        factorRow.getCells().get(1).getContext().setTextAlignment(TextAlignment.CENTER);
-        at.addRule();
-        AT_Row workHashRow = at.addRow("work hash", doc.getJSONObject("pow").getString("hash"));
-        at.addRule();
-
-        at.getRenderer().setCWC(new CWC_LongestWord());
-        at.setPaddingLeftRight(2);
-
-        System.out.println(colorize(at.render(),
-                new AnsiFormat(Attribute.GREEN_TEXT(), Attribute.BLACK_BACK())));
+        System.out.println(String.format("message: `%s`", doc.getString("msg")));
+        System.out.println(String.format("timestamp: %s", Instant.ofEpochMilli(doc.getLong("time"))
+                .atZone(ZoneId.of("UTC")).toLocalDateTime().toString()));
+        System.out.println(String.format("work factor: %d", doc.getJSONObject("pow").getLong("work")));
+        System.out.println(String.format("PoW hash: `%s`", doc.getJSONObject("pow").getString("hash")));
     }
 
     private void useKey(String msg) throws IOException, ArrayIndexOutOfBoundsException {
@@ -247,14 +172,10 @@ public class HandoffClient {
         // no empties, plz
         if(msg.isEmpty()) {
             if(!currentDocumentHash.isEmpty()) {
-                System.out.println(
-                        colorize(String.format("current key document is set to `%s`", currentDocumentHash),
-                                new AnsiFormat(Attribute.BRIGHT_BLUE_TEXT(), Attribute.BLACK_BACK())));
+                System.out.println(String.format("current key document is set to `%s`", currentDocumentHash));
             } else {
-                System.out.println(
-                        colorize("no current key doc selected. select a key " +
-                                "document (`use n` command). use `list` to show selections.",
-                                new AnsiFormat(Attribute.BRIGHT_RED_TEXT(), Attribute.BLACK_BACK())));
+                System.out.println("no current key doc selected. select a key document (`use n` command). use `list` " +
+                        "to show selections.");
             }
 
             return;
@@ -265,8 +186,7 @@ public class HandoffClient {
 
         // no alphas
         if(!StringUtils.isNumeric(arr[0].strip())) {
-            System.out.println(colorize("not a number =/",
-                            new AnsiFormat(Attribute.BRIGHT_RED_TEXT(), Attribute.BLACK_BACK())));
+            System.out.println("not a number =/");
             return;
         }
 
@@ -278,21 +198,17 @@ public class HandoffClient {
                 .toList();
 
         if(selection > hashList.size()-1 || selection < 0) {
-            System.out.println(colorize("not a valid selection =(",
-                    new AnsiFormat(Attribute.BRIGHT_RED_TEXT(), Attribute.BLACK_BACK())));
+            System.out.println("not a valid selection =(");
         } else {
             Path g = hashList.get(selection);
             currentDocumentHash = g.getFileName().toString();
 
-            System.out.println(colorize(
-                    String.format("current key document is set to `%s`", currentDocumentHash),
-                    new AnsiFormat(Attribute.BRIGHT_BLUE_TEXT(), Attribute.BLACK_BACK())));
+            System.out.println(String.format("current key document is set to `%s`", currentDocumentHash));
         }
     }
 
     private void sayGoodbye() {
-        System.out.println(colorize("exiting...",
-                new AnsiFormat(Attribute.BRIGHT_RED_TEXT(), Attribute.BLACK_BACK())));
+        System.out.println("exiting...");
         scan.close();
         System.exit(0);
     }
@@ -316,13 +232,11 @@ public class HandoffClient {
             );
             i.getAndIncrement();
 
-            System.out.println(colorize(s,
-                    new AnsiFormat(Attribute.BRIGHT_BLUE_TEXT(), Attribute.BLACK_BACK())));
+            System.out.println(s);
         });
 
         if(!currentDocumentHash.isEmpty()) {
-            System.out.println(colorize(String.format("current key document: `%s`", currentDocumentHash),
-                    new AnsiFormat(Attribute.BRIGHT_RED_TEXT(), Attribute.BLACK_BACK())));
+            System.out.println(String.format("current key document: `%s`", currentDocumentHash));
         }
     }
 
@@ -386,31 +300,25 @@ public class HandoffClient {
 
         // TODO : PoW for value creation
         PoW pow = new PoW(keysJson.toString().getBytes(StandardCharsets.UTF_8), 1);
-        System.out.println(colorize("doing the work...",
-                new AnsiFormat(Attribute.BRIGHT_MAGENTA_TEXT(), Attribute.BLACK_BACK())));
+        System.out.println("doing the work...");
 
         JSONObject powJ = new JSONObject();
         powJ.put("hash", pow.getHash());
         powJ.put("work", pow.getNonce());
         keysJson.put("pow", powJ);
 
-        System.out.println(colorize(String.format("work completed by a factor of %d, requiring %d bit(s). " +
-                "signature: `%s`",
-                pow.getNonce(), pow.getBitsNeeded(), pow.getHash()),
-                new AnsiFormat(Attribute.BRIGHT_CYAN_TEXT(), Attribute.BLACK_BACK())));
+        System.out.println(String.format("work completed by a factor of %d, requiring %d bit(s). signature: `%s`",
+                pow.getNonce(), pow.getBitsNeeded(), pow.getHash()));
 
         Path storePath = Path.of(System.getProperty("user.home").toString(), ".handoff", hashStr);
 
         Files.createDirectories(storePath.getParent());
         Files.createFile(storePath);
 
-        Files.write(storePath, keysJson.toString().getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE);
+        //Files.write(storePath, keysJson.toString().getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE);
+        Files.writeString(storePath, keysJson.toString(), StandardOpenOption.CREATE);
 
-        System.out.println(colorize(String.format(
-                "key saved to document `%s`",
-                storePath.toString()
-                ),
-                new AnsiFormat(Attribute.BRIGHT_BLUE_TEXT(), Attribute.BLACK_BACK())));
+        System.out.println(String.format("key saved to document `%s`", storePath.toString()));
     }
 
     private void echo(String msg) {
