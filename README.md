@@ -8,18 +8,30 @@ nonetheless, but it's providing sufficient knowledge to all parties (i'll term `
 [battlement](https://github.com/white5moke/battlement)).
 
 #### what can it do?
-`cur  : what is your current key document`
 
-`del  : deletes all your key documents. be careful!`
+````
+bye  : exit the app.
 
-`echo : prints user input.  'echo <any text string here>'`
+cur  : what is your current key document
 
-`gen  : generate a new key document.`
+del  : deletes all your key documents. DON'T PANIC!
 
-`help : help information.`
+echo : prints user input.  `echo <any text string here>`
 
-`list : list all key documents.`
+gen  : generate a new key document. message is optional. `gen [<message>]`
 
-`peek : view details of a key document.  'peek <# from list>'`
+help : help information.
 
-`use  : designate currently used key document. 'use <# from list>'`
+list : list all key documents.
+
+peek : view details of a key document.  `peek <# from list>`
+
+use  : designate currently used key document. `use <# from list>`
+````
+
+---
+
+##### uses these dependencies:
+
+[![@vdmeer-asciitable](https://img.shields.io/badge/%40vdmeer-asciitable-lightgrey?style=for-the-badge)](https://github.com/vdmeer/asciitable)
+[![@dialex-JColor](https://img.shields.io/badge/%40dialex-JColor-red?style=for-the-badge)](https://github.com/dialex/JColor)
