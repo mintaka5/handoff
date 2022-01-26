@@ -10,23 +10,16 @@ nonetheless, but it's providing sufficient knowledge to all parties (i'll term `
 #### what can it do?
 
 ````
-bye  : exit the app.
-
-cur  : what is your current key document
-
-del  : deletes all your key documents. DON'T PANIC!
-
-echo : prints user input.  `echo <any text string here>`
-
-gen  : generate a new key document. message is optional. `gen [<message>]`
-
+bye : exit the app.
+cur : what is your current key document `cur`
+del : deletes all your key documents. be careful! `del`
+echo : prints user input. `echo <any text string here>`
+gen : generate a new key document. message is optional. `gen [<message>]`
 help : help information.
-
-list : list all key documents.
-
-peek : view details of a key document.  `peek <# from list>`
-
-use  : designate currently used key document. `use <# from list>`
+list : list all key documents. sorted by most recent first `list`
+peek : view the details of a key document `peek <# from `list`>`
+sign : signs a string of text, and produces signature. `sign <some silly text here>`
+use : designate currently used key document. `use <# from `list`>`
 ````
 
 ---
