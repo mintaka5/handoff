@@ -2,6 +2,7 @@ package org.white5moke.handoff;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.json.JSONObject;
+import org.white5moke.handoff.client.Handoff;
 import org.white5moke.handoff.client.HandoffClient;
 
 import javax.crypto.*;
@@ -38,7 +39,8 @@ public class App {
      * @throws IllegalBlockSizeException
      * @throws BadPaddingException
      */
-    public static void a1() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException, IOException, InvalidKeySpecException, InvalidKeyException, SignatureException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
+    public static void a1() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException, IOException,
+            InvalidKeySpecException, InvalidKeyException, SignatureException, NoSuchPaddingException {
         final String SECP = "secp256r1";
 
         KeyPairGenerator gen = KeyPairGenerator.getInstance("EC");

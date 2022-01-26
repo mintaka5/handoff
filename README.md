@@ -26,6 +26,8 @@ list : list all key documents.
 
 peek : view details of a key document.  `peek <# from list>`
 
+sign : signs a string of text, and produces signature. `sign <some silly text here>`
+
 use  : designate currently used key document. `use <# from list>`
 ````
 

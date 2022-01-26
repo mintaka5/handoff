@@ -1,3 +1,8 @@
+/**
+ * TODO:
+ * - encrypt, encrpyt, encrypt the key documents after `gen`!
+ */
+
 package org.white5moke.handoff.client;
 
 import org.apache.commons.codec.digest.DigestUtils;
@@ -5,33 +10,61 @@ import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 import org.white5moke.handoff.know.PoW;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.security.*;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class HandoffClient {
     private Path home = Path.of(System.getProperty("user.home"), ".handoff");
     private Scanner scan = new Scanner(System.in);
-    private List<Path> hashList;
+    private List<Path> hashList = new ArrayList<>();
     private String currentDocumentHash = StringUtils.EMPTY;
 
     public HandoffClient() throws IOException, NoSuchAlgorithmException, SignatureException,
-            InvalidKeyException {
+            InvalidKeyException, InvalidKeySpecException, NoSuchPaddingException, IllegalBlockSizeException,
+            BadPaddingException {
         runLoop();
     }
 
+    public String getCurrentDocumentHash() {
+        return currentDocumentHash;
+    }
+
+    public void setCurrentDocumentHash(String currentDocumentHash) {
+        this.currentDocumentHash = currentDocumentHash;
+    }
+
+    public List<Path> getHashList() {
+        return hashList;
+    }
+
+    public void setHashList(List<Path> hl) {
+        this.hashList = hl;
+    }
+
     private void runLoop() throws IOException, NoSuchAlgorithmException, SignatureException,
-            InvalidKeyException {
+            InvalidKeyException, InvalidKeySpecException {
+
+        // set a default key-doc to use (let user change if needed)
+        String filename = Files.list(getHome()).map(x -> x.getFileName().toString()).findFirst().orElse(null);
+        setCurrentDocumentHash(filename.trim());
+        System.out.println(String.format("current key document: `%s`",
+                getCurrentDocumentHash()
+                ));
+
         while (true) {
             System.out.print("> ");
 
@@ -74,6 +107,9 @@ public class HandoffClient {
                 case "use" -> {
                     useKey(theMsg);
                 }
+                case "sign" -> {
+                    sign(theMsg);
+                }
                 default -> {}
             }
         }
@@ -96,11 +132,52 @@ public class HandoffClient {
 
         System.out.println("peek : view the details of a key document `peek <# from `list`>`");
 
+        System.out.println("sign : signs a string of text, and produces signature. `sign <some silly text here>`");
+
         System.out.println("use : designate currently used key document. `use <# from `list`>`");
     }
 
+    private void sign(String msg) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException,
+            InvalidKeyException, SignatureException {
+        if(getCurrentDocumentHash().isEmpty()) {
+            System.out.println("no key document is active. try `use #` command.");
+        } else {
+            // do it
+            JSONObject doc = acquireJson(getCurrentDocumentHash());
+
+            String privBase64ed = doc.getJSONObject("signing").getString("priv");
+            byte[] privDecoded = Base64.getDecoder().decode(privBase64ed);
+
+            KeyFactory factory = KeyFactory.getInstance("EC");
+            PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(privDecoded);
+            PrivateKey privKey = factory.generatePrivate(spec);
+
+            Signature sign = Signature.getInstance("SHA256withECDSA");
+            sign.initSign(privKey);
+
+            byte[] msgBytes = msg.trim().getBytes(StandardCharsets.UTF_8);
+            sign.update(msgBytes);
+
+            byte[] signature = sign.sign();
+
+            System.out.println(String.format("signature for the message, `%s`: `%s` \nusing key document `%s`",
+                    msg,
+                    Base64.getEncoder().encodeToString(signature),
+                    getCurrentDocumentHash()
+                    ));
+        }
+    }
+
+    private JSONObject acquireJson(String hash) throws IOException {
+        Path p = Path.of(getHome().toString(), getCurrentDocumentHash());
+        String keyDoc = Files.readString(p);
+        JSONObject doc = new JSONObject(keyDoc);
+
+        return doc;
+    }
+
     private void delete() throws IOException {
-        Files.list(home).forEach(f -> {
+        Files.list(getHome()).forEach(f -> {
             try {
                 Files.delete(f);
                 System.out.println(String.format("removed `%s`", f.getFileName().toString()));
@@ -111,18 +188,16 @@ public class HandoffClient {
 
         System.out.println("complete.");
 
-        currentDocumentHash = StringUtils.EMPTY;
+        setCurrentDocumentHash(StringUtils.EMPTY);
     }
 
     private void current() throws IOException {
-        if(currentDocumentHash.isEmpty()) {
+        if(getCurrentDocumentHash().isEmpty()) {
             System.out.println("no key document is active. try `use #` command.");
         } else {
-            System.out.println(String.format("your active key document is `%s`", currentDocumentHash));
+            System.out.println(String.format("your active key document is `%s`", getCurrentDocumentHash()));
 
-            Path p = Path.of(home.toString(), currentDocumentHash);
-            String keyDoc = Files.readString(p);
-            JSONObject doc = new JSONObject(keyDoc);
+            JSONObject doc = acquireJson(getCurrentDocumentHash());
         }
     }
 
@@ -142,31 +217,33 @@ public class HandoffClient {
 
         int selection = Integer.parseInt(arr[0].strip());
 
-        hashList = Files
-                .list(home)
+        setHashList(
+                Files.list(getHome())
                 .sorted((f1, f2) -> Long.valueOf(f2.toFile().lastModified())
-                        .compareTo(f1.toFile().lastModified()))
-                .toList();
+                        .compareTo(f1.toFile().lastModified())).toList()
+        );
 
-        if(selection > hashList.size()-1 || selection < 0) {
+        List<Path> hl = getHashList();
+
+        if(selection > hl.size()-1 || selection < 0) {
             System.out.println("not a valid selection =(");
 
             return;
         }
 
-        Path g = hashList.get(selection);
-        currentDocumentHash = g.getFileName().toString();
+        Path g = hl.get(selection);
+        setCurrentDocumentHash(g.getFileName().toString());
 
-        System.out.println(String.format("peeking at key document `%s`", currentDocumentHash));
+        System.out.println(String.format("peeking at key document `%s`", getCurrentDocumentHash()));
 
-        String content = Files.readString(Path.of(home.toString(), currentDocumentHash));
+        String content = Files.readString(Path.of(getHome().toString(), getCurrentDocumentHash()));
         JSONObject doc = new JSONObject(content);
 
-        System.out.println(String.format("message: `%s`", doc.getString("msg")));
-        System.out.println(String.format("timestamp: %s", Instant.ofEpochMilli(doc.getLong("time"))
+        System.out.println(String.format("message      : `%s`", doc.getString("msg")));
+        System.out.println(String.format("timestamp    : %s", Instant.ofEpochMilli(doc.getLong("time"))
                 .atZone(ZoneId.of("UTC")).toLocalDateTime().toString()));
-        System.out.println(String.format("work factor: %d", doc.getJSONObject("pow").getLong("work")));
-        System.out.println(String.format("PoW hash: `%s`", doc.getJSONObject("pow").getString("hash")));
+        System.out.println(String.format("work factor  : %d", doc.getJSONObject("pow").getLong("work")));
+        System.out.println(String.format("PoW hash     : `%s`", doc.getJSONObject("pow").getString("hash")));
     }
 
     private void useKey(String msg) throws IOException, ArrayIndexOutOfBoundsException {
@@ -195,10 +272,10 @@ public class HandoffClient {
 
         int selection = Integer.parseInt(arr[0].strip());
 
-        hashList = Files.list(home)
+        setHashList(Files.list(home)
                 .sorted((f1, f2) -> Long.valueOf(f2.toFile().lastModified())
                         .compareTo(f1.toFile().lastModified()))
-                .toList();
+                .toList());
 
         if(selection > hashList.size()-1 || selection < 0) {
             System.out.println("not a valid selection =(");
@@ -243,6 +320,14 @@ public class HandoffClient {
         }
     }
 
+    public Path getHome() {
+        return home;
+    }
+
+    public void setHome(Path home) {
+        this.home = home;
+    }
+
     /**
      * @param msg Generic string
      * @throws NoSuchAlgorithmException
@@ -254,6 +339,7 @@ public class HandoffClient {
             SignatureException, IOException {
 
         KeyPairGenerator gen = KeyPairGenerator.getInstance("RSA");
+        // TODO : also make `keysize` adjustable within bit range of algo.
         gen.initialize(2048);
         KeyPair pair = gen.generateKeyPair();
 
@@ -292,7 +378,7 @@ public class HandoffClient {
         Signature signing = Signature.getInstance("SHA256withECDSA");
         signing.initSign(sPrivKey);
 
-        String wholeJson = keysJson.toString(4);
+        String wholeJson = keysJson.toString();
         signing.update(wholeJson.getBytes(StandardCharsets.UTF_8));
         byte[] signature = signing.sign();
         keysJson.put("signature", Base64.getEncoder().encodeToString(signature));
@@ -301,7 +387,8 @@ public class HandoffClient {
         String hashStr = DigestUtils.sha256Hex(wholeJson.getBytes(StandardCharsets.UTF_8));
         keysJson.put("hash", hashStr);
 
-        // TODO : PoW for value creation
+        // PoW for value creation (sufficient knowledge was made)
+        // TODO : let command allow for num of bits setting.
         PoW pow = new PoW(keysJson.toString().getBytes(StandardCharsets.UTF_8), 1);
         System.out.println("doing the work...");
 
@@ -318,7 +405,6 @@ public class HandoffClient {
         Files.createDirectories(storePath.getParent());
         Files.createFile(storePath);
 
-        //Files.write(storePath, contents, StandardOpenOption.CREATE);
         Files.writeString(storePath, keysJson.toString(), StandardOpenOption.CREATE);
 
         System.out.println(String.format("key saved to document `%s`", storePath.toString()));
