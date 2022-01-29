@@ -2,11 +2,12 @@ package org.white5moke.handoff.client;
 
 import io.leonard.Base58;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.*;
+import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
-import java.util.zip.GZIPOutputStream;
+import java.util.zip.Inflater;
 
 public class SignThis {
     public static byte[] sign(byte[] msg, PrivateKey privKey) throws NoSuchAlgorithmException,
@@ -27,11 +28,27 @@ public class SignThis {
         return verity.verify(signedMsg);
     }
 
-    public static byte[] compress(byte[] signature) throws IOException {
+    public static byte[] compress(byte[] stuff) throws IOException {
         Deflater comp = new Deflater();
         comp.setLevel(Deflater.BEST_COMPRESSION);
-        comp.deflate(signature);
+        comp.deflate(stuff);
 
-        return signature;
+        return stuff;
+    }
+
+    public static byte[] decompress(byte[] stuff) throws DataFormatException {
+        Inflater decomp = new Inflater();
+        byte[] ns = stuff;
+        decomp.inflate(ns);
+
+        return ns;
+    }
+
+    public static String ez(byte[] stuff) throws IOException {
+        return Base58.encode(compress(stuff));
+    }
+
+    public static byte[] notEz(String stuff) throws DataFormatException {
+        return decompress(Base58.decode(stuff));
     }
 }

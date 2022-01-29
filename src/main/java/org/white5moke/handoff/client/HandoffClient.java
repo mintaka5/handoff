@@ -18,21 +18,18 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.zip.Deflater;
+import java.util.zip.DataFormatException;
 
 public class HandoffClient {
     private final Path home;
     private final Scanner scan = new Scanner(System.in);
-    private List<Path> hashList;
+    private List<Path> hashList = new ArrayList<>();
     private String currentDocumentHash = StringUtils.EMPTY;
 
     public HandoffClient() throws IOException, NoSuchAlgorithmException, SignatureException,
-            InvalidKeyException, InvalidKeySpecException {
+            InvalidKeyException, InvalidKeySpecException, DataFormatException {
         // establish file structure
         home = Path.of(System.getProperty("user.home"), ".handoff");
         Files.createDirectories(home.getParent());
@@ -41,7 +38,9 @@ public class HandoffClient {
     }
 
     private void runLoop() throws IOException, NoSuchAlgorithmException, SignatureException,
-            InvalidKeyException, InvalidKeySpecException {
+            InvalidKeyException, InvalidKeySpecException, DataFormatException {
+        initHashList();
+
         while (true) {
             System.out.print("> ");
 
@@ -68,14 +67,29 @@ public class HandoffClient {
                 case "list" -> list();
                 case "peek" -> peek(theMsg);
                 case "sign" -> signMessage(theMsg);
-                case "vsign" -> verifyMessageSignature(theMsg);
+                case "vsign" -> verifyMessageSignature();
                 case "use" -> useKey(theMsg);
                 default -> {}
             }
         }
     }
 
-    private void verifyMessageSignature(String msg) {
+    private void initHashList() throws NoSuchAlgorithmException, SignatureException, IOException,
+            InvalidKeyException {
+        try {
+            hashList = Files
+                    .list(home)
+                    .sorted((f1, f2) -> Long.compare(f2.toFile().lastModified(), f1.toFile().lastModified()))
+                    .toList();
+            useKey("0");
+        } catch (NullPointerException | IOException e) {}
+        if(hashList.size() <= 0) {
+            System.out.println("no key documents found. making one...");
+            generateKey("");
+        }
+    }
+
+    private void verifyMessageSignature() throws DataFormatException, NoSuchAlgorithmException, InvalidKeySpecException, SignatureException, InvalidKeyException {
         System.out.print("key? > ");
         String keyS = scan.nextLine();
         System.out.print("orig. message: > ");
@@ -84,6 +98,22 @@ public class HandoffClient {
         String signatureS = scan.nextLine();
 
         System.out.printf("key: `%s`\nmessage: `%s`; signature: `%s`%n", keyS, origMsgS, signatureS);
+
+        byte[] pubBs = SignThis.notEz(keyS);
+        byte[] sigBs = SignThis.notEz(signatureS);
+
+        X509EncodedKeySpec spec = new X509EncodedKeySpec(pubBs);
+        KeyFactory factory = KeyFactory.getInstance("EC");
+
+        PublicKey pub = factory.generatePublic(spec);
+
+        try {
+            boolean isValid = SignThis.isValidSignature(origMsgS.trim().getBytes(StandardCharsets.UTF_8), pub, sigBs);
+            if(isValid) System.out.println("signature is GOOD");
+        } catch (SignatureException e) {
+            System.out.println("INVALID signature");
+            return;
+        }
     }
 
     private void signMessage(String msg) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException,
@@ -97,8 +127,11 @@ public class HandoffClient {
 
         byte[] signature = SignThis.sign(msgBs, getPrivateKeyFromFile());
 
-        System.out.printf("signature: `%s`\nfor the message `%s`%n",
-                Base58.encode(SignThis.compress(signature)),
+        PublicKey pub = getPublicKeyFromFile();
+
+        System.out.printf("key: `%s`\nsignature: `%s`\nfor the message `%s`%n",
+                SignThis.ez(pub.getEncoded()),
+                SignThis.ez(signature),
                 msg.trim()
         );
     }
@@ -106,7 +139,6 @@ public class HandoffClient {
     private PublicKey getPublicKeyFromFile() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
         if(currentDocumentHash.isEmpty()) throw new IllegalArgumentException("no key document is set");
 
-        System.out.printf("your active key document is `%s`%n", currentDocumentHash);
         Path p = Path.of(home.toString(), currentDocumentHash);
         String doc = Files.readString(p);
         JSONObject j = new JSONObject(doc);
@@ -153,6 +185,9 @@ public class HandoffClient {
         System.out.println("sign : sign a message. `sign <any text here>`");
 
         System.out.println("use : designate currently used key document. `use <# from `list`>`");
+
+        System.out.println("vsign : verify a signed message. user will be prompted for public key, original message, " +
+                "and signature. `vsign`.");
     }
 
     private void delete() throws IOException {
@@ -170,15 +205,11 @@ public class HandoffClient {
         currentDocumentHash = StringUtils.EMPTY;
     }
 
-    private void current() throws IOException {
+    private void current() {
         if (currentDocumentHash.isEmpty()) {
             System.out.println("no key document is active. try `use #` command.");
         } else {
             System.out.printf("your active key document is `%s`%n", currentDocumentHash);
-
-            Path p = Path.of(home.toString(), currentDocumentHash);
-            String keyDoc = Files.readString(p);
-            JSONObject doc = new JSONObject(keyDoc);
         }
     }
 
@@ -226,9 +257,6 @@ public class HandoffClient {
 
     /**
      * sets the user's active key document
-     * @param msg
-     * @throws IOException
-     * @throws ArrayIndexOutOfBoundsException
      */
     private void useKey(String msg) throws IOException, ArrayIndexOutOfBoundsException {
         String[] arr = StringUtils.split(msg, StringUtils.SPACE);
@@ -281,7 +309,6 @@ public class HandoffClient {
 
     /**
      * prints a list of all key documents
-     * @throws IOException
      */
     private void list() throws IOException {
         try {
