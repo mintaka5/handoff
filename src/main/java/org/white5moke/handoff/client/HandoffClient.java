@@ -1,5 +1,6 @@
 package org.white5moke.handoff.client;
 
+import io.leonard.Base58;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
@@ -22,6 +23,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.zip.Deflater;
 
 public class HandoffClient {
     private final Path home;
@@ -74,11 +76,11 @@ public class HandoffClient {
     }
 
     private void verifyMessageSignature(String msg) {
-        System.out.print("key? >");
+        System.out.print("key? > ");
         String keyS = scan.nextLine();
-        System.out.print("orig. message: >");
+        System.out.print("orig. message: > ");
         String origMsgS = scan.nextLine();
-        System.out.print("signature: >");
+        System.out.print("signature: > ");
         String signatureS = scan.nextLine();
 
         System.out.printf("key: `%s`\nmessage: `%s`; signature: `%s`%n", keyS, origMsgS, signatureS);
@@ -86,12 +88,19 @@ public class HandoffClient {
 
     private void signMessage(String msg) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException,
             InvalidKeyException, SignatureException {
+        if(currentDocumentHash.isEmpty()) {
+            System.out.println("no key document is set. use `use <n>`!");
+            return;
+        }
+
         byte[] msgBs = msg.trim().getBytes(StandardCharsets.UTF_8);
 
         byte[] signature = SignThis.sign(msgBs, getPrivateKeyFromFile());
 
-        System.out.printf("signature: `%s`\nfor the message `%s`%n", Base64.getEncoder().encodeToString(signature),
-                msg.trim());
+        System.out.printf("signature: `%s`\nfor the message `%s`%n",
+                Base58.encode(SignThis.compress(signature)),
+                msg.trim()
+        );
     }
 
     private PublicKey getPublicKeyFromFile() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
@@ -112,8 +121,6 @@ public class HandoffClient {
 
     private PrivateKey getPrivateKeyFromFile() throws IOException, NoSuchAlgorithmException,
             InvalidKeySpecException {
-        if(currentDocumentHash.isEmpty()) throw new IllegalArgumentException("no key document is set");
-
         System.out.printf("your active key document is `%s`%n", currentDocumentHash);
         Path p = Path.of(home.toString(), currentDocumentHash);
         String doc = Files.readString(p);
@@ -133,7 +140,7 @@ public class HandoffClient {
 
         System.out.println("del : deletes all your key documents. be careful! `del`");
 
-        System.out.println("echo : prints user input. `echo <any text string here>`");
+        System.out.println("echo : prints user input. `echo <any text string>`");
 
         System.out.println("gen : generate a new key document. message is optional. `gen [<message>]`");
 
@@ -142,6 +149,8 @@ public class HandoffClient {
         System.out.println("list : list all key documents. sorted by most recent first `list`");
 
         System.out.println("peek : view the details of a key document `peek <# from `list`>`");
+
+        System.out.println("sign : sign a message. `sign <any text here>`");
 
         System.out.println("use : designate currently used key document. `use <# from `list`>`");
     }
@@ -215,6 +224,12 @@ public class HandoffClient {
         System.out.printf("PoW hash: `%s`%n", doc.getJSONObject("pow").getString("hash"));
     }
 
+    /**
+     * sets the user's active key document
+     * @param msg
+     * @throws IOException
+     * @throws ArrayIndexOutOfBoundsException
+     */
     private void useKey(String msg) throws IOException, ArrayIndexOutOfBoundsException {
         String[] arr = StringUtils.split(msg, StringUtils.SPACE);
 
@@ -255,12 +270,19 @@ public class HandoffClient {
         }
     }
 
+    /**
+     *
+     */
     private void sayGoodbye() {
         System.out.println("exiting...");
         scan.close();
         System.exit(0);
     }
 
+    /**
+     * prints a list of all key documents
+     * @throws IOException
+     */
     private void list() throws IOException {
         try {
             hashList = Files
@@ -293,7 +315,8 @@ public class HandoffClient {
     }
 
     /**
-     * @param msg Generic string
+     * generates a key pair with a message included
+     * @param msg message
      */
     private void generateKey(String msg) throws NoSuchAlgorithmException, InvalidKeyException,
             SignatureException, IOException {
@@ -368,6 +391,10 @@ public class HandoffClient {
         System.out.printf("key saved to document `%s`%n", storePath);
     }
 
+    /**
+     * prints whatever the user inputs back to them in some manner. for fun.
+     * @param msg message
+     */
     private void echo(String msg) {
         if (!msg.isEmpty()) {
             System.out.printf("ECHO: %s%n", msg.toUpperCase());

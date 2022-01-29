@@ -29,17 +29,9 @@ public class App {
 
     /**
      * This is just a scratch method. DO NOT DELETE!
-     * @throws NoSuchAlgorithmException
-     * @throws InvalidAlgorithmParameterException
-     * @throws IOException
-     * @throws InvalidKeySpecException
-     * @throws InvalidKeyException
-     * @throws SignatureException
-     * @throws NoSuchPaddingException
-     * @throws IllegalBlockSizeException
-     * @throws BadPaddingException
      */
-    public static void a1() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException, IOException, InvalidKeySpecException, InvalidKeyException, SignatureException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
+    public static void a1() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException, IOException,
+            InvalidKeySpecException, InvalidKeyException, SignatureException, NoSuchPaddingException {
         final String SECP = "secp256r1";
 
         KeyPairGenerator gen = KeyPairGenerator.getInstance("EC");
@@ -138,6 +130,6 @@ public class App {
     }
 
     public static void main(String... args) throws Exception {
-        new App();
+        App app = new App();
     }
 }
