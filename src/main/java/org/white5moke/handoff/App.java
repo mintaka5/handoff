@@ -23,6 +23,7 @@ import java.util.Base64;
 
 public class App {
     public App() throws Exception {
+        //SignThis signThis = new SignThis(new byte[16], privateKey);
         new HandoffClient();
     }
 
