@@ -13,13 +13,14 @@ nonetheless, but it's providing sufficient knowledge to all parties (i'll term `
 bye : exit the app.
 cur : what is your current key document `cur`
 del : deletes all your key documents. be careful! `del`
-echo : prints user input. `echo <any text string here>`
+echo : prints user input. `echo <any text string>`
 gen : generate a new key document. message is optional. `gen [<message>]`
 help : help information.
 list : list all key documents. sorted by most recent first `list`
 peek : view the details of a key document `peek <# from `list`>`
-sign : signs a string of text, and produces signature. `sign <some silly text here>`
+sign : sign a message. `sign <any text here>`
 use : designate currently used key document. `use <# from `list`>`
+vsign : verify a signed message. user will be prompted for public key, original message, and signature. `vsign`.
 ````
 
 ---
