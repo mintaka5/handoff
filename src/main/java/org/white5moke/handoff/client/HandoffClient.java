@@ -1,11 +1,14 @@
 package org.white5moke.handoff.client;
 
-import io.leonard.Base58;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 import org.white5moke.handoff.know.PoW;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -29,7 +32,8 @@ public class HandoffClient {
     private String currentDocumentHash = StringUtils.EMPTY;
 
     public HandoffClient() throws IOException, NoSuchAlgorithmException, SignatureException,
-            InvalidKeyException, InvalidKeySpecException, DataFormatException {
+            InvalidKeyException, InvalidKeySpecException, DataFormatException, NoSuchPaddingException,
+            IllegalBlockSizeException, BadPaddingException {
         // establish file structure
         home = Path.of(System.getProperty("user.home"), ".handoff");
         Files.createDirectories(home.getParent());
@@ -37,8 +41,10 @@ public class HandoffClient {
         runLoop();
     }
 
+    // main loop
     private void runLoop() throws IOException, NoSuchAlgorithmException, SignatureException,
-            InvalidKeyException, InvalidKeySpecException, DataFormatException {
+            InvalidKeyException, InvalidKeySpecException, DataFormatException, NoSuchPaddingException,
+            IllegalBlockSizeException, BadPaddingException {
         initHashList();
 
         while (true) {
@@ -62,6 +68,7 @@ public class HandoffClient {
                 case "cur" -> current();
                 case "del" -> delete();
                 case "echo" -> echo(theMsg);
+                case "enc" -> encryptMessage(theMsg);
                 case "gen" -> generateKey(theMsg);
                 case "help" -> help();
                 case "list" -> list();
@@ -74,6 +81,46 @@ public class HandoffClient {
         }
     }
 
+    private void encryptMessage(String msg) throws IOException, NoSuchAlgorithmException,
+            InvalidKeySpecException, SignatureException, InvalidKeyException, NoSuchPaddingException,
+            IllegalBlockSizeException, BadPaddingException {
+        if(currentDocumentHash.isEmpty()) {
+            System.out.println("no key document is set. use `use <n>`!");
+            return;
+        }
+
+        byte[] msgBs = msg.trim().getBytes(StandardCharsets.UTF_8);
+
+        // get encryption private key from string
+        PublicKey encPubKey = getPublicEncKeyIO();
+        PrivateKey encPrivKey = getPrivateEncKeyIO();
+
+        Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+        cipher.init(Cipher.ENCRYPT_MODE, encPubKey);
+        byte[] encBs = cipher.doFinal();
+
+        byte[] sigBs = SignThis.sign(encBs, getPrivateSignKeyIO());
+    }
+
+    private PublicKey getPublicEncKeyIO() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+        JSONObject j = acquireKeyDocument();
+
+        byte[] pubBs = Base64.getDecoder().decode(j.getJSONObject("enc").getString("pub").trim());
+
+        X509EncodedKeySpec spec = new X509EncodedKeySpec(pubBs);
+        KeyFactory factory = KeyFactory.getInstance("RSA");
+
+        return factory.generatePublic(spec);
+    }
+
+    /**
+     * set up an initial key document, and set 0 index as default
+     * if none exist generate one
+     * @throws NoSuchAlgorithmException
+     * @throws SignatureException
+     * @throws IOException
+     * @throws InvalidKeyException
+     */
     private void initHashList() throws NoSuchAlgorithmException, SignatureException, IOException,
             InvalidKeyException {
         try {
@@ -89,7 +136,16 @@ public class HandoffClient {
         }
     }
 
-    private void verifyMessageSignature() throws DataFormatException, NoSuchAlgorithmException, InvalidKeySpecException, SignatureException, InvalidKeyException {
+    /**
+     * verify a signature, provided with relevant public key, original text message, and signature
+     * @throws DataFormatException
+     * @throws NoSuchAlgorithmException
+     * @throws InvalidKeySpecException
+     * @throws SignatureException
+     * @throws InvalidKeyException
+     */
+    private void verifyMessageSignature() throws DataFormatException, NoSuchAlgorithmException, InvalidKeySpecException,
+            InvalidKeyException {
         System.out.print("key? > ");
         String keyS = scan.nextLine();
         System.out.print("orig. message: > ");
@@ -99,8 +155,8 @@ public class HandoffClient {
 
         System.out.printf("key: `%s`\nmessage: `%s`; signature: `%s`%n", keyS, origMsgS, signatureS);
 
-        byte[] pubBs = SignThis.notEz(keyS);
-        byte[] sigBs = SignThis.notEz(signatureS);
+        byte[] pubBs = Ez.notEz(keyS);
+        byte[] sigBs = Ez.notEz(signatureS);
 
         X509EncodedKeySpec spec = new X509EncodedKeySpec(pubBs);
         KeyFactory factory = KeyFactory.getInstance("EC");
@@ -116,6 +172,16 @@ public class HandoffClient {
         }
     }
 
+    /**
+     * signing feature: sign a text message, and provide public key
+     * and signature (provided message too)
+     * @param msg
+     * @throws IOException
+     * @throws NoSuchAlgorithmException
+     * @throws InvalidKeySpecException
+     * @throws InvalidKeyException
+     * @throws SignatureException
+     */
     private void signMessage(String msg) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException,
             InvalidKeyException, SignatureException {
         if(currentDocumentHash.isEmpty()) {
@@ -125,23 +191,26 @@ public class HandoffClient {
 
         byte[] msgBs = msg.trim().getBytes(StandardCharsets.UTF_8);
 
-        byte[] signature = SignThis.sign(msgBs, getPrivateKeyFromFile());
+        byte[] signature = SignThis.sign(msgBs, getPrivateSignKeyIO());
 
-        PublicKey pub = getPublicKeyFromFile();
+        PublicKey pub = getPublicSignKeyIO();
 
         System.out.printf("key: `%s`\nsignature: `%s`\nfor the message `%s`%n",
-                SignThis.ez(pub.getEncoded()),
-                SignThis.ez(signature),
+                Ez.ez(pub.getEncoded()),
+                Ez.ez(signature),
                 msg.trim()
         );
     }
 
-    private PublicKey getPublicKeyFromFile() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
-        if(currentDocumentHash.isEmpty()) throw new IllegalArgumentException("no key document is set");
-
-        Path p = Path.of(home.toString(), currentDocumentHash);
-        String doc = Files.readString(p);
-        JSONObject j = new JSONObject(doc);
+    /**
+     * retrieve public key from encoded string to java's PublicKey object
+     * @return PublicKey
+     * @throws IOException
+     * @throws NoSuchAlgorithmException
+     * @throws InvalidKeySpecException
+     */
+    private PublicKey getPublicSignKeyIO() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+        JSONObject j = acquireKeyDocument();
 
         byte[] pubBs = Base64.getDecoder().decode(j.getJSONObject("signing").getString("pub").trim());
 
@@ -151,12 +220,13 @@ public class HandoffClient {
         return factory.generatePublic(spec);
     }
 
-    private PrivateKey getPrivateKeyFromFile() throws IOException, NoSuchAlgorithmException,
+    /**
+     * retrieve private key from encoded string to java's PrivateKey object
+     * @return PrivateKey
+     */
+    private PrivateKey getPrivateSignKeyIO() throws IOException, NoSuchAlgorithmException,
             InvalidKeySpecException {
-        System.out.printf("your active key document is `%s`%n", currentDocumentHash);
-        Path p = Path.of(home.toString(), currentDocumentHash);
-        String doc = Files.readString(p);
-        JSONObject j = new JSONObject(doc);
+        JSONObject j = acquireKeyDocument();
         byte[] privBs = Base64.getDecoder().decode(j.getJSONObject("signing").getString("priv").trim());
 
         PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(privBs);
@@ -165,6 +235,30 @@ public class HandoffClient {
         return factory.generatePrivate(spec);
     }
 
+    private PrivateKey getPrivateEncKeyIO() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+        JSONObject j = acquireKeyDocument();
+
+        byte[] privBs = Base64.getDecoder().decode(j.getJSONObject("enc").getString("priv").trim());
+
+        PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(privBs);
+        KeyFactory factory = KeyFactory.getInstance("RSA");
+
+        return factory.generatePrivate(spec);
+    }
+
+    private JSONObject acquireKeyDocument() throws IOException {
+        if(currentDocumentHash.isEmpty()) throw new IllegalArgumentException("no key document is set");
+
+        Path p = Path.of(home.toString(), currentDocumentHash);
+        String doc = Files.readString(p);
+        JSONObject j = new JSONObject(doc);
+
+        return j;
+    }
+
+    /**
+     * RTFM
+     */
     private void help() {
         System.out.println("bye : exit the app.");
 
@@ -190,6 +284,10 @@ public class HandoffClient {
                 "and signature. `vsign`.");
     }
 
+    /**
+     * purge all key documents
+     * @throws IOException
+     */
     private void delete() throws IOException {
         Files.list(home).forEach(f -> {
             try {
@@ -205,6 +303,9 @@ public class HandoffClient {
         currentDocumentHash = StringUtils.EMPTY;
     }
 
+    /**
+     * print the currently active key document's hash
+     */
     private void current() {
         if (currentDocumentHash.isEmpty()) {
             System.out.println("no key document is active. try `use #` command.");
@@ -213,6 +314,11 @@ public class HandoffClient {
         }
     }
 
+    /**
+     * take a peek at a key document
+     * @param msg message
+     * @throws IOException
+     */
     private void peek(String msg) throws IOException {
         String[] arr = StringUtils.split(msg, StringUtils.SPACE);
 
