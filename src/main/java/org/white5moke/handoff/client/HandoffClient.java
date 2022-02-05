@@ -43,8 +43,7 @@ public class HandoffClient {
 
     // main loop
     private void runLoop() throws IOException, NoSuchAlgorithmException, SignatureException,
-            InvalidKeyException, InvalidKeySpecException, DataFormatException, NoSuchPaddingException,
-            IllegalBlockSizeException, BadPaddingException {
+            InvalidKeyException, InvalidKeySpecException, DataFormatException {
         initHashList();
 
         while (true) {
@@ -82,24 +81,21 @@ public class HandoffClient {
     }
 
     private void encryptMessage(String msg) throws IOException, NoSuchAlgorithmException,
-            InvalidKeySpecException, SignatureException, InvalidKeyException, NoSuchPaddingException,
-            IllegalBlockSizeException, BadPaddingException {
+            InvalidKeySpecException, SignatureException, InvalidKeyException, DataFormatException {
         if(currentDocumentHash.isEmpty()) {
             System.out.println("no key document is set. use `use <n>`!");
             return;
         }
 
         byte[] msgBs = msg.trim().getBytes(StandardCharsets.UTF_8);
+        PrivateKey signPriv = getPrivateSignKeyIO();
+        byte[] sig = SignThis.sign(msgBs, signPriv);
+        String exSig = Ez.ez(sig);
 
-        // get encryption private key from string
-        PublicKey encPubKey = getPublicEncKeyIO();
-        PrivateKey encPrivKey = getPrivateEncKeyIO();
-
-        Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-        cipher.init(Cipher.ENCRYPT_MODE, encPubKey);
-        byte[] encBs = cipher.doFinal();
-
-        byte[] sigBs = SignThis.sign(encBs, getPrivateSignKeyIO());
+        System.out.println("encryption key? > ");
+        String encKey = scan.nextLine().trim();
+        byte[] encBs = Ez.notEz(encKey);
+        // TODO : fuck me
     }
 
     private PublicKey getPublicEncKeyIO() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
@@ -116,10 +112,6 @@ public class HandoffClient {
     /**
      * set up an initial key document, and set 0 index as default
      * if none exist generate one
-     * @throws NoSuchAlgorithmException
-     * @throws SignatureException
-     * @throws IOException
-     * @throws InvalidKeyException
      */
     private void initHashList() throws NoSuchAlgorithmException, SignatureException, IOException,
             InvalidKeyException {
@@ -138,11 +130,6 @@ public class HandoffClient {
 
     /**
      * verify a signature, provided with relevant public key, original text message, and signature
-     * @throws DataFormatException
-     * @throws NoSuchAlgorithmException
-     * @throws InvalidKeySpecException
-     * @throws SignatureException
-     * @throws InvalidKeyException
      */
     private void verifyMessageSignature() throws DataFormatException, NoSuchAlgorithmException, InvalidKeySpecException,
             InvalidKeyException {
@@ -205,9 +192,6 @@ public class HandoffClient {
     /**
      * retrieve public key from encoded string to java's PublicKey object
      * @return PublicKey
-     * @throws IOException
-     * @throws NoSuchAlgorithmException
-     * @throws InvalidKeySpecException
      */
     private PublicKey getPublicSignKeyIO() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
         JSONObject j = acquireKeyDocument();
