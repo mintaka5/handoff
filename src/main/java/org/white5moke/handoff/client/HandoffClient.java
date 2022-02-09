@@ -301,7 +301,6 @@ public class HandoffClient {
     /**
      * take a peek at a key document
      * @param msg message
-     * @throws IOException
      */
     private void peek(String msg) throws IOException {
         String[] arr = StringUtils.split(msg, StringUtils.SPACE);
@@ -477,7 +476,7 @@ public class HandoffClient {
         Signature signing = Signature.getInstance("SHA256withECDSA");
         signing.initSign(sPrivKey);
 
-        String wholeJson = keysJson.toString(4);
+        String wholeJson = keysJson.toString();
         signing.update(wholeJson.getBytes(StandardCharsets.UTF_8));
         byte[] signature = signing.sign();
         keysJson.put("signature", Base64.getEncoder().encodeToString(signature));

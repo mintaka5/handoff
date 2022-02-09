@@ -3,6 +3,7 @@ package org.white5moke.handoff.know;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.json.JSONObject;
 
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
@@ -20,7 +21,6 @@ public class PoW {
      * Does it all.
      * @param msg Any random array of data
      * @param numZeroes How many bits to work for?
-     * @throws NoSuchAlgorithmException
      */
     public PoW(byte[] msg, int numZeroes) throws NoSuchAlgorithmException {
         setBitsNeeded(numZeroes);
@@ -34,7 +34,6 @@ public class PoW {
     /**
      * Do the work. Get a job!
      * @param msg Data
-     * @throws NoSuchAlgorithmException
      */
     private void work(byte[] msg) throws NoSuchAlgorithmException {
         String prefix = StringUtils.repeat("0", bitsNeeded);
@@ -67,6 +66,15 @@ public class PoW {
     @Override
     public String toString() {
         return getHash();
+    }
+
+    public JSONObject toJson() {
+        JSONObject j = new JSONObject();
+        j.put("hash", getHash());
+        j.put("work", getNonce());
+        j.put("time", getTimestamp());
+        j.put("bits", getBitsNeeded());
+        return j;
     }
 
     /*public static void main(String[] args) throws NoSuchAlgorithmException {
