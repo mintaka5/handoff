@@ -3,6 +3,7 @@ package org.white5moke.handoff.document;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
@@ -22,6 +23,12 @@ public class EncryptionDocument {
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
+    }
+
+    public EncryptionDocument(JSONObject j) {
+        String privS = j.getString(JSON_PRIV_KEY).trim();
+        String pubS = j.getString(JSON_PUB_KEY).trim();
+
     }
 
     private void generateKeyPair() throws NoSuchAlgorithmException {
