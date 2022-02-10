@@ -4,9 +4,11 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
+import java.security.*;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.zip.DataFormatException;
 
 public class EncryptionDocument {
     public static final String KEY_PAIR_ALGORITHM = "RSA";
@@ -26,9 +28,21 @@ public class EncryptionDocument {
     }
 
     public EncryptionDocument(JSONObject j) {
-        String privS = j.getString(JSON_PRIV_KEY).trim();
-        String pubS = j.getString(JSON_PUB_KEY).trim();
+        try {
+            byte[] privBs = KeyDocument.notEz(j.getString(JSON_PRIV_KEY).trim());
+            byte[] pubBs = KeyDocument.notEz(j.getString(JSON_PUB_KEY).trim());
 
+            PKCS8EncodedKeySpec spec1 = new PKCS8EncodedKeySpec(privBs);
+            KeyFactory fac1 = KeyFactory.getInstance(KEY_PAIR_ALGORITHM);
+            PrivateKey privKey = fac1.generatePrivate(spec1);
+
+            X509EncodedKeySpec spec2 = new X509EncodedKeySpec(pubBs);
+            PublicKey pubKey = fac1.generatePublic(spec2);
+
+            keyPair = new KeyPair(pubKey, privKey);
+        } catch (DataFormatException | NoSuchAlgorithmException | InvalidKeySpecException e) {
+            e.printStackTrace();
+        }
     }
 
     private void generateKeyPair() throws NoSuchAlgorithmException {

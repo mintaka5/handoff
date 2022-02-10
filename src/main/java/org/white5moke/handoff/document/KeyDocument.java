@@ -14,16 +14,18 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SignatureException;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
+import java.util.zip.Inflater;
 
 public class KeyDocument {
-    private static final String ENC_OBJ_NAME = "enc";
-    private static final String SIGN_OBJ_NAME = "sign";
-    private static final String DOC_TIME_NAME = "time" ;
-    private static final String DOC_MSG_NAME = "msg";
-    private static final String DOC_HASH_NAME = "hash";
-    private static final String DOC_SIGN_NAME = "signature";
-    private static final String DOC_WORK_NAME = "work";
+    public static final String ENC_OBJ_NAME = "enc";
+    public static final String SIGN_OBJ_NAME = "sign";
+    public static final String DOC_TIME_NAME = "time" ;
+    public static final String DOC_MSG_NAME = "msg";
+    public static final String DOC_HASH_NAME = "hash";
+    public static final String DOC_SIGN_NAME = "signature";
+    public static final String DOC_WORK_NAME = "work";
     private EncryptionDocument encryptionDocument;
     private SigningDocument signingDocument;
     private PoW pow;
@@ -71,6 +73,20 @@ public class KeyDocument {
 
     public static String ez(byte[] encoded) throws IOException {
         return Base58.encode(compress(encoded));
+    }
+
+    public static byte[] notEz(String decoded) throws DataFormatException {
+        return decompress(Base58.decode(decoded));
+    }
+
+    private static byte[] decompress(byte[] decode) throws DataFormatException {
+        Inflater decomp = new Inflater();
+        byte[] buffer = new byte[1024];
+        decomp.setInput(decode);
+        decomp.inflate(buffer);
+        decomp.end();
+
+        return buffer;
     }
 
     private static byte[] compress(byte[] encoded) throws IOException {
