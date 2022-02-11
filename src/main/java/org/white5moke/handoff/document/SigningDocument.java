@@ -1,80 +1,59 @@
 package org.white5moke.handoff.document;
 
 import org.json.JSONObject;
+import org.white5moke.handoff.client.Ez;
 
-import java.io.IOException;
 import java.security.*;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
-import java.util.zip.DataFormatException;
 
 public class SigningDocument {
+    public static final String ALGORITHM = "EC";
     public static final int KEY_SIZE = 256;
-    public static final String KEY_SIGNING_ALGORITHM = "SHA256withECDSA";
-    public static final String KEY_PAIR_ALGORITHM = "EC";
-    public static final String RANDOM_ALGORITHM = "SHA1PRNG";
+    public static final String SIGNING_ALGORITHM = "SHA256withECDSA";
     private static final String JSON_PRIV_KEY = "priv";
     private static final String JSON_PUB_KEY = "pub";
 
-    private KeyPair keyPair;
+    private PublicKey publicKey;
+    private PrivateKey privateKey;
 
-    public SigningDocument() {
-        try {
-            generateKeyPair();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        }
+    private Ez pubEz = Ez.getInstance();
+    private Ez privEz = Ez.getInstance();
+
+    public SigningDocument() {}
+
+    public KeyPair generate() throws NoSuchAlgorithmException {
+        KeyPairGenerator gen = KeyPairGenerator.getInstance(ALGORITHM);
+        SecureRandom ran = SecureRandom.getInstance("SHA1PRNG");
+        gen.initialize(KEY_SIZE, ran);
+        KeyPair pair = gen.generateKeyPair();
+        setPrivateKey(pair.getPrivate());
+        setPublicKey(pair.getPublic());
+
+        return pair;
     }
 
-    public SigningDocument(JSONObject j) {
-        try {
-            byte[] privBs = KeyDocument.notEz(j.getString(JSON_PRIV_KEY));
-            byte[] pubBs = KeyDocument.notEz(j.getString(JSON_PUB_KEY));
-
-            PKCS8EncodedKeySpec spec1 = new PKCS8EncodedKeySpec(privBs);
-            KeyFactory fac1 = KeyFactory.getInstance(KEY_PAIR_ALGORITHM);
-            PrivateKey privKey = fac1.generatePrivate(spec1);
-
-            X509EncodedKeySpec spec2 = new X509EncodedKeySpec(pubBs);
-            PublicKey pubKey = fac1.generatePublic(spec2);
-
-            keyPair = new KeyPair(pubKey, privKey);
-        } catch (DataFormatException | NoSuchAlgorithmException | InvalidKeySpecException e) {
-            e.printStackTrace();
-        }
+    public PublicKey getPublicKey() {
+        return publicKey;
     }
 
-    private void generateKeyPair() throws NoSuchAlgorithmException {
-        KeyPairGenerator g = KeyPairGenerator.getInstance(KEY_PAIR_ALGORITHM);
-        SecureRandom r = SecureRandom.getInstance(RANDOM_ALGORITHM);
-        g.initialize(KEY_SIZE, r);
+    public void setPublicKey(PublicKey publicKey) {
+        this.publicKey = publicKey;
+    }
 
-        keyPair = g.generateKeyPair();
+    public PrivateKey getPrivateKey() {
+        return privateKey;
+    }
+
+    public void setPrivateKey(PrivateKey privateKey) {
+        this.privateKey = privateKey;
     }
 
     @Override
     public String toString() {
-        return toJson().toString();
-    }
-
-    public JSONObject toJson() {
         JSONObject j = new JSONObject();
-        try {
-            j.put(JSON_PRIV_KEY, KeyDocument.ez(keyPair.getPrivate().getEncoded()));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        try {
-            j.put(JSON_PUB_KEY, KeyDocument.ez(keyPair.getPublic().getEncoded()));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
 
-        return j;
-    }
+        j.put(JSON_PRIV_KEY, privEz.ez(getPrivateKey().getEncoded()));
+        j.put(JSON_PUB_KEY, pubEz.ez(getPublicKey().getEncoded()));
 
-    public KeyPair getKeyPair() {
-        return this.keyPair;
+        return j.toString();
     }
 }

@@ -1,7 +1,8 @@
 package org.white5moke.handoff;
 
+
 public class App {
-    public App() throws Exception {
+    public App() {
         new HandoffWindow();
     }
 
