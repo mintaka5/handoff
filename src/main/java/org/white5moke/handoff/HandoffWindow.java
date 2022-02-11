@@ -1,13 +1,11 @@
 package org.white5moke.handoff;
 
-import org.json.JSONObject;
 import org.white5moke.handoff.document.KeyDocument;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SignatureException;
@@ -42,7 +40,8 @@ public class HandoffWindow extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 try {
                     KeyDocument keyDoc = handoff.generateKeyDocument();
-
+                    System.out.printf("key document generated...%n");
+                    System.out.printf("%s%n", keyDoc.toString());
                 } catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException
                         | IOException ex) {
                     ex.printStackTrace();

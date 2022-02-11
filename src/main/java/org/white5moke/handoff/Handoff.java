@@ -1,19 +1,21 @@
 package org.white5moke.handoff;
 
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.json.JSONObject;
 import org.white5moke.handoff.document.KeyDocument;
 
-import java.awt.font.OpenType;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
-import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SignatureException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 public class Handoff {
@@ -25,8 +27,10 @@ public class Handoff {
         try {
             Files.createDirectories(homeDir.getParent());
             Files.createDirectory(homeDir);
+        } catch (FileAlreadyExistsException e1) {
+            System.out.println("key document directory already exists...move along...");
         } catch (IOException e) {
-            System.out.println(e.getMessage() + " : failed to create home directories for storage");
+            e.printStackTrace();
         }
 
         fileList = new ArrayList<>();
@@ -55,12 +59,17 @@ public class Handoff {
     }
 
     private Path toFile(KeyDocument doc, Path dir) throws NoSuchAlgorithmException, SignatureException,
-            InvalidKeyException, IOException {
+            InvalidKeyException {
         byte[] docBs = doc.aggregateBytes();
-        String filename = new String(doc.getHash(), StandardCharsets.UTF_8);
+        String filename = Hex.encodeHexString(doc.getHash());
 
-        Path newDoc = Files.createFile(Path.of(dir.toString(), filename.trim()));
-        newDoc = Files.write(newDoc, docBs, StandardOpenOption.CREATE_NEW);
+        Path newDoc = null;
+
+        try {
+            newDoc = Files.write(Path.of(homeDir.toString(), filename), docBs, StandardOpenOption.CREATE_NEW);
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+        }
 
         return newDoc;
     }

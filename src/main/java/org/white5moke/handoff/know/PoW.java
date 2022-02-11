@@ -12,6 +12,10 @@ import java.time.Instant;
  * PoW: Simple proof-of-work
  */
 public class PoW {
+    private static final String JSON_HASH_KEY = "hash";
+    private static final String JSON_NONCE_KEY = "work";
+    private static final String JSON_TIME_KEY = "time";
+    private static final String JSON_BITS_KEY = "bits";
     private int bitsNeeded = 0;
     private int nonce = 0;
     private long timestamp;
@@ -27,8 +31,14 @@ public class PoW {
         setTimestamp(Instant.now().toEpochMilli());
 
         work(msg);
-
         //System.out.println("Work factor " + nonce);
+    }
+
+    public PoW(JSONObject j) {
+        setHash(j.getString(JSON_HASH_KEY).trim());
+        setTimestamp(j.getLong(JSON_TIME_KEY));
+        setNonce(j.getInt(JSON_NONCE_KEY));
+        setBitsNeeded(j.getInt(JSON_BITS_KEY));
     }
 
     /**
@@ -46,6 +56,7 @@ public class PoW {
             setTimestamp(Instant.now().toEpochMilli());
             nonce += 1;
 
+            // set a hash after nonce has incremented.
             setHash(DigestUtils.sha256Hex(reMessage(hexMsg)));
         }
     }
@@ -70,11 +81,15 @@ public class PoW {
 
     public JSONObject toJson() {
         JSONObject j = new JSONObject();
-        j.put("hash", getHash());
-        j.put("work", getNonce());
-        j.put("time", getTimestamp());
-        j.put("bits", getBitsNeeded());
+        j.put(JSON_HASH_KEY, getHash());
+        j.put(JSON_NONCE_KEY, getNonce());
+        j.put(JSON_TIME_KEY, getTimestamp());
+        j.put(JSON_BITS_KEY, getBitsNeeded());
         return j;
+    }
+
+    public PoW fromJson(JSONObject j) throws NoSuchAlgorithmException {
+        return new PoW(j);
     }
 
     /*public static void main(String[] args) throws NoSuchAlgorithmException {

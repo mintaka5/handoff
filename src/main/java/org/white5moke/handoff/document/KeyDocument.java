@@ -41,6 +41,12 @@ public class KeyDocument {
         signingDocument = new SigningDocument();
 
         try {
+            setHash(DigestUtils.sha256(aggregateBytes()));
+        } catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException e) {
+            e.printStackTrace();
+        }
+
+        try {
             pow = new PoW(aggregateBytes(), 1);
         } catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException e) {
             e.printStackTrace();
@@ -59,10 +65,24 @@ public class KeyDocument {
         } catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException e) {
             e.printStackTrace();
         }
+
+        try {
+            setHash(DigestUtils.sha256(aggregateBytes()));
+        } catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException e) {
+            e.printStackTrace();
+        }
     }
 
     public KeyDocument(JSONObject j) {
-        setEncryptionDocument(new EncryptionDocument(j.getJSONObject("enc")));
+        setEncryptionDocument(new EncryptionDocument(j.getJSONObject(ENC_OBJ_NAME)));
+        setSigningDocument(new SigningDocument(j.getJSONObject(SIGN_OBJ_NAME)));
+        try {
+            setMessage(KeyDocument.notEz(j.getString(DOC_MSG_NAME).trim()));
+        } catch (DataFormatException e) {
+            e.printStackTrace();
+        }
+        setTimestamp(j.getLong(DOC_TIME_NAME));
+        setHash(j.getString(DOC_HASH_NAME).getBytes(StandardCharsets.UTF_8));
     }
 
     public byte[] aggregateBytes() throws NoSuchAlgorithmException, SignatureException, InvalidKeyException {
@@ -147,7 +167,6 @@ public class KeyDocument {
 
         JSONObject encJson = encryptionDocument.toJson();
         JSONObject signJson = signingDocument.toJson();
-        JSONObject powJson = pow.toJson();
 
         j.put(ENC_OBJ_NAME, encJson);
         j.put(SIGN_OBJ_NAME, signJson);
@@ -159,11 +178,14 @@ public class KeyDocument {
 
         j.put(DOC_SIGN_NAME, SignThis.sign(
                 j.toString().getBytes(StandardCharsets.UTF_8),
-                encryptionDocument.getKeyPair().getPrivate())
+                signingDocument.getKeyPair().getPrivate())
         );
 
-        // TODO : may move this before signing and hash...
-        j.put(DOC_WORK_NAME, powJson);
+        // TODO : include this some fuckin how
+        if(pow != null) {
+            JSONObject powJson = pow.toJson();
+            j.put(DOC_WORK_NAME, powJson);
+        }
 
         return j;
     }

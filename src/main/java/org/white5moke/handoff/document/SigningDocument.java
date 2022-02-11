@@ -3,10 +3,11 @@ package org.white5moke.handoff.document;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
+import java.security.*;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.zip.DataFormatException;
 
 public class SigningDocument {
     public static final int KEY_SIZE = 256;
@@ -22,6 +23,24 @@ public class SigningDocument {
         try {
             generateKeyPair();
         } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public SigningDocument(JSONObject j) {
+        try {
+            byte[] privBs = KeyDocument.notEz(j.getString(JSON_PRIV_KEY));
+            byte[] pubBs = KeyDocument.notEz(j.getString(JSON_PUB_KEY));
+
+            PKCS8EncodedKeySpec spec1 = new PKCS8EncodedKeySpec(privBs);
+            KeyFactory fac1 = KeyFactory.getInstance(KEY_PAIR_ALGORITHM);
+            PrivateKey privKey = fac1.generatePrivate(spec1);
+
+            X509EncodedKeySpec spec2 = new X509EncodedKeySpec(pubBs);
+            PublicKey pubKey = fac1.generatePublic(spec2);
+
+            keyPair = new KeyPair(pubKey, privKey);
+        } catch (DataFormatException | NoSuchAlgorithmException | InvalidKeySpecException e) {
             e.printStackTrace();
         }
     }
@@ -53,5 +72,9 @@ public class SigningDocument {
         }
 
         return j;
+    }
+
+    public KeyPair getKeyPair() {
+        return this.keyPair;
     }
 }
