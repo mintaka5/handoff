@@ -9,7 +9,7 @@ public class Compressor5 {
     private Deflater zip;
     private int originalSize = 0;
 
-    public static final int COMPRESSION_SIZE = 64;
+    public static final int COMPRESSION_SIZE = 16;
 
     public Compressor5() {
         setUnzip(new Inflater());
@@ -17,6 +17,9 @@ public class Compressor5 {
     }
 
     public byte[] compress(byte[] data) {
+        // don't bother with small ones
+        if(data.length <= COMPRESSION_SIZE) return data;
+
         setOriginalSize(data.length);
         getZip().setInput(data);
         getZip().finish();
@@ -28,7 +31,7 @@ public class Compressor5 {
 
     public byte[] decompress(byte[] data) throws DataFormatException {
         getUnzip().setInput(data, 0, COMPRESSION_SIZE);
-        int origSize = getOriginalSize();
+        int origSize = (getOriginalSize() > COMPRESSION_SIZE) ? getOriginalSize() : 65000;
         byte[] res = new byte[origSize];
         getUnzip().inflate(res);
 

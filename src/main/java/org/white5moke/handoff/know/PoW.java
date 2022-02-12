@@ -11,7 +11,7 @@ import java.time.Instant;
 /**
  * PoW: Simple proof-of-work
  */
-public class PoW {
+public class PoW extends Thread {
     private static final String JSON_HASH_KEY = "hash";
     private static final String JSON_NONCE_KEY = "work";
     private static final String JSON_TIME_KEY = "time";
@@ -23,14 +23,13 @@ public class PoW {
 
     /**
      * Does it all.
-     * @param msg Any random array of data
      * @param numZeroes How many bits to work for?
      */
-    public PoW(byte[] msg, int numZeroes) throws NoSuchAlgorithmException {
+    public PoW(int numZeroes) throws NoSuchAlgorithmException {
         setBitsNeeded(numZeroes);
         setTimestamp(Instant.now().toEpochMilli());
 
-        work(msg);
+        //work(msg);
         //System.out.println("Work factor " + nonce);
     }
 
@@ -45,7 +44,7 @@ public class PoW {
      * Do the work. Get a job!
      * @param msg Data
      */
-    private void work(byte[] msg) throws NoSuchAlgorithmException {
+    public void work(byte[] msg) {
         String prefix = StringUtils.repeat("0", bitsNeeded);
 
         String hexMsg = Hex.encodeHexString(msg);

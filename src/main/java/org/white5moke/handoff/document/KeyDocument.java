@@ -2,47 +2,12 @@ package org.white5moke.handoff.document;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.json.JSONObject;
+import org.white5moke.handoff.know.PoW;
 
 import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.time.Instant;
-
-
-
-class EncryptionDocument {
-    public static final String ALGORITHM = "RSA";
-    public static final int KEY_SIZE = 2048;
-
-    private PublicKey publicKey;
-    private PrivateKey privateKey;
-
-    public KeyPair generate() throws NoSuchAlgorithmException {
-        KeyPairGenerator gen = KeyPairGenerator.getInstance(ALGORITHM);
-        gen.initialize(KEY_SIZE);
-        KeyPair pair = gen.generateKeyPair();
-
-        setPrivateKey(pair.getPrivate());
-        setPublicKey(pair.getPublic());
-
-        return pair;
-    }
-
-    public PublicKey getPublicKey() {
-        return publicKey;
-    }
-
-    public void setPublicKey(PublicKey publicKey) {
-        this.publicKey = publicKey;
-    }
-
-    public PrivateKey getPrivateKey() {
-        return privateKey;
-    }
-
-    public void setPrivateKey(PrivateKey privateKey) {
-        this.privateKey = privateKey;
-    }
-}
+import java.util.zip.DataFormatException;
 
 public class KeyDocument {
     private static final String JSON_HASH_KEY = "hash";
@@ -50,29 +15,55 @@ public class KeyDocument {
     private static final String JSON_TIME_KEY = "time";
     private static final String JSON_ENC_KEY = "enc";
     private static final String JSON_SIGN_KEY = "sign";
+    private static final String JSON_POW_KEY = "pow";
     private long timestamp;
     private String message;
     private String hash;
     private SigningDocument signingDocument;
     private EncryptionDocument encryptionDocument;
+    private PoW pow;
 
-    public KeyDocument() {
-
-    }
+    public KeyDocument() {}
 
     public void generate(String message) {
         setMessage(message.strip());
         setTimestamp(Instant.now().toEpochMilli());
         setSigningDocument(new SigningDocument());
         setEncryptionDocument(new EncryptionDocument());
+
         try {
             getSigningDocument().generate();
             getEncryptionDocument().generate();
+
+            PoW getAJob = new PoW(1);
+            getAJob.work(getMessage().getBytes(StandardCharsets.UTF_8));
+            setPow(getAJob);
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
 
         setHash(DigestUtils.sha256Hex(aggregateJsonBytes()));
+
+        sign(aggregateJsonBytes());
+    }
+
+    public void fromJson(JSONObject json) {
+        setMessage(json.getString(JSON_MSG_KEY).strip());
+        setTimestamp(json.getLong(JSON_TIME_KEY));
+        setSigningDocument(new SigningDocument());
+        setEncryptionDocument(new EncryptionDocument());
+
+        try {
+            getSigningDocument().fromJson(json.getJSONObject(JSON_SIGN_KEY));
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (DataFormatException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void sign(byte[] data) {
+        
     }
 
     private byte[] aggregateJsonBytes() {
@@ -125,14 +116,25 @@ public class KeyDocument {
         j.put(JSON_TIME_KEY, getTimestamp());
         j.put(JSON_MSG_KEY, getMessage());
 
-        JSONObject jEnc = new JSONObject();
+        JSONObject jEnc = new JSONObject(getEncryptionDocument().toString());
         j.put(JSON_ENC_KEY, jEnc);
 
         JSONObject jSign = new JSONObject(getSigningDocument().toString());
         j.put(JSON_SIGN_KEY, jSign);
 
+        JSONObject jPow = getPow().toJson();
+        j.put(JSON_POW_KEY, jPow);
+
         j.put(JSON_HASH_KEY, getHash());
 
-        return j.toString(4);
+        return j.toString();
+    }
+
+    public PoW getPow() {
+        return pow;
+    }
+
+    public void setPow(PoW pow) {
+        this.pow = pow;
     }
 }

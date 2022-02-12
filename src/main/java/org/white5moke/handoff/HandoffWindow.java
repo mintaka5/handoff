@@ -1,22 +1,23 @@
 package org.white5moke.handoff;
 
-import org.apache.commons.lang3.StringUtils;
+import org.json.JSONObject;
+import org.white5moke.handoff.document.KeyDocument;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.io.IOException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.SignatureException;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
 
 public class HandoffWindow extends JFrame {
     private final Container basePanel;
     private Handoff handoff;
     private JButton newKeyButton;
     private JTextField messageText;
+    private List<KeyDocument> keyDocuments = new ArrayList<>();
 
     public HandoffWindow() {
         super("handoff");
@@ -29,11 +30,27 @@ public class HandoffWindow extends JFrame {
 
         handoff = new Handoff();
 
+        updateKeyDocuments();
+
         buildUI();
 
         listeners();
 
         setVisible(true);
+    }
+
+    private void updateKeyDocuments() {
+        try {
+            Files.list(handoff.getHomeDirectory()).forEach(path -> {
+                try {
+                    KeyDocument doc = handoff.fromFile(path);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            });
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void listeners() {
@@ -42,6 +59,7 @@ public class HandoffWindow extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 handoff.create(messageText.getText());
                 messageText.setText("");
+                updateKeyDocuments();
             }
         });
     }
@@ -49,6 +67,12 @@ public class HandoffWindow extends JFrame {
     private void buildUI() {
         JPanel center = new JPanel();
         center.setLayout(new BorderLayout());
+        JLabel tempLbl = new JLabel("Hi there!");
+        center.add(BorderLayout.CENTER, tempLbl);
+        getContentPane().add(BorderLayout.CENTER, center);
+
+        JPanel top = new JPanel();
+        top.setLayout(new BorderLayout());
         JPanel messagePanel = new JPanel();
         messagePanel.setBorder(new EmptyBorder(10, 10, 10, 10));
         GridBagLayout messageLayout = new GridBagLayout();
@@ -59,9 +83,9 @@ public class HandoffWindow extends JFrame {
         messagePanel.setLayout(messageLayout);
 
         messageText = buildTextField("message", 0, messagePanel);
-        center.add(BorderLayout.CENTER, messagePanel);
+        top.add(BorderLayout.CENTER, messagePanel);
 
-        getContentPane().add(BorderLayout.CENTER, center);
+        getContentPane().add(BorderLayout.NORTH, top);
 
         JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(new GridLayout(1, 1, 5, 5));
@@ -90,5 +114,9 @@ public class HandoffWindow extends JFrame {
         txt.setColumns(10);
 
         return txt;
+    }
+
+    public List<KeyDocument> getKeyDocuments() {
+        return keyDocuments;
     }
 }

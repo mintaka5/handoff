@@ -1,16 +1,16 @@
 package org.white5moke.handoff;
 
+import org.json.JSONObject;
 import org.white5moke.handoff.document.KeyDocument;
 
 import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.file.StandardOpenOption;
 
 public class Handoff {
     private Path homeDirectory;
-    private List<KeyDocument> keyDocumentList = new ArrayList<>();
 
     public Handoff() {
         // set up storage directory
@@ -20,8 +20,10 @@ public class Handoff {
         try {
             Files.createDirectories(getHomeDirectory().getParent());
             Files.createDirectory(dir);
+        } catch (FileAlreadyExistsException fe) {
+            System.out.printf("user directory, %s exists%n", fe.getMessage());
         } catch (IOException e) {
-            System.out.println("problem creating top level directories: " + e.getMessage());
+            System.out.printf("i/o error: %s%n", e.getMessage());
         }
 
 
@@ -38,33 +40,32 @@ public class Handoff {
     public KeyDocument create(String message) {
         KeyDocument kDoc = new KeyDocument();
         kDoc.generate(message);
+        JSONObject j = new JSONObject(kDoc.toString());
         toFile(kDoc);
 
         return kDoc;
     }
 
-    private void toFile(KeyDocument kDoc) {
-        System.out.println(kDoc);
+    private void toFile(KeyDocument kDoc) {;
+        String filename = kDoc.getHash();
+        try {
+            Files.writeString(
+                    Path.of(getHomeDirectory().toString(), filename),
+                    kDoc.toString(),
+                    StandardOpenOption.CREATE_NEW
+            );
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
-    public List<KeyDocument> getDocuments() throws IOException {
-        List<KeyDocument> l = new ArrayList<>();
+    public KeyDocument fromFile(Path path) throws IOException {
+        KeyDocument doc = new KeyDocument();
+        String jsonS = Files.readString(path);
+        JSONObject json = new JSONObject(jsonS);
 
-        Files.list(getHomeDirectory()).forEach(f -> {
-            try {
-                KeyDocument kDoc = fromFile(f);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
+        doc.fromJson(json);
 
-        return l;
-    }
-
-    private KeyDocument fromFile(Path f) throws IOException {
-        byte[] file = Files.readAllBytes(f);
-
-
-        return null;
+        return doc;
     }
 }
