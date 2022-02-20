@@ -37,26 +37,24 @@ public class SigningDocument {
         return pair;
     }
 
-    public SigningDocument fromJson(JSONObject json) throws NoSuchAlgorithmException, DataFormatException,
+    public static SigningDocument fromJson(JSONObject json) throws NoSuchAlgorithmException, DataFormatException,
             InvalidKeySpecException {
         SigningDocument signingDoc = new SigningDocument();
 
-        String privBase64 = Base64.getEncoder().encodeToString(
-                Ez.getInstance().notEz(json.getString(JSON_PRIV_KEY))
-        );
-        String pubBase64 = Base64.getEncoder().encodeToString(
-                Ez.getInstance().notEz(json.getString(JSON_PUB_KEY))
-        );
-        // convert string to bytes
-        PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(privBase64.getBytes(StandardCharsets.UTF_8));
+        String privS = json.getString(JSON_PRIV_KEY).strip();
+        //System.out.println("privS: " + privS);
+        byte[] privBs = Ez.getInstance().notEz(json.getString(JSON_PRIV_KEY).strip());
+        byte[] pubBs = Ez.getInstance().notEz(json.getString(JSON_PUB_KEY).strip());
+
+        PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(privBs);
         KeyFactory factory = KeyFactory.getInstance(SigningDocument.ALGORITHM);
         PrivateKey privateKey = factory.generatePrivate(spec);
 
-        X509EncodedKeySpec spec1 = new X509EncodedKeySpec(pubBase64.getBytes(StandardCharsets.UTF_8));
+        X509EncodedKeySpec spec1 = new X509EncodedKeySpec(pubBs);
         PublicKey publicKey = factory.generatePublic(spec1);
 
-        setPrivateKey(privateKey);
-        setPublicKey(publicKey);
+        signingDoc.setPublicKey(publicKey);
+        signingDoc.setPrivateKey(privateKey);
 
         return signingDoc;
     }

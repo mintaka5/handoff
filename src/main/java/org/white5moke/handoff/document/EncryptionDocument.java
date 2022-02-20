@@ -59,25 +59,21 @@ public class EncryptionDocument {
         return j.toString();
     }
 
-    public EncryptionDocument fromJson(JSONObject json) throws NoSuchAlgorithmException, InvalidKeySpecException {
+    public static EncryptionDocument fromJson(JSONObject json) throws NoSuchAlgorithmException, InvalidKeySpecException {
         EncryptionDocument encDoc = new EncryptionDocument();
 
-        String pubBase64 = Base64.getEncoder().encodeToString(
-                Ez.getInstance().notEz(json.getString(JSON_PUB_KEY))
-        );
-        String privBase64 = Base64.getEncoder().encodeToString(
-                Ez.getInstance().notEz(json.getString(JSON_PRIV_KEY))
-        );
+        byte[] pubBs = Ez.getInstance().notEz(json.getString(JSON_PUB_KEY).strip());
+        byte[] privBs = Ez.getInstance().notEz(json.getString(JSON_PRIV_KEY).strip());
 
-        PKCS8EncodedKeySpec spec1 = new PKCS8EncodedKeySpec(privBase64.getBytes(StandardCharsets.UTF_8));
+        PKCS8EncodedKeySpec spec1 = new PKCS8EncodedKeySpec(privBs);
         KeyFactory factory = KeyFactory.getInstance(ALGORITHM);
         PrivateKey privKey = factory.generatePrivate(spec1);
 
-        X509EncodedKeySpec spec2 = new X509EncodedKeySpec(pubBase64.getBytes(StandardCharsets.UTF_8));
+        X509EncodedKeySpec spec2 = new X509EncodedKeySpec(pubBs);
         PublicKey pubKey = factory.generatePublic(spec2);
 
-        setPrivateKey(privKey);
-        setPublicKey(pubKey);
+        encDoc.setPrivateKey(privKey);
+        encDoc.setPublicKey(pubKey);
 
         return encDoc;
     }

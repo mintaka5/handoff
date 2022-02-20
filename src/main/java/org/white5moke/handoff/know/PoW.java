@@ -87,7 +87,7 @@ public class PoW extends Thread {
         return j;
     }
 
-    public PoW fromJson(JSONObject j) throws NoSuchAlgorithmException {
+    public static PoW fromJson(JSONObject j) throws NoSuchAlgorithmException {
         return new PoW(j);
     }
 

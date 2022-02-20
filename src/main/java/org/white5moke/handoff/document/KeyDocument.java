@@ -2,6 +2,7 @@ package org.white5moke.handoff.document;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.json.JSONObject;
+import org.white5moke.handoff.client.Ez;
 import org.white5moke.handoff.know.PoW;
 
 import java.nio.charset.StandardCharsets;
@@ -17,9 +18,11 @@ public class KeyDocument {
     private static final String JSON_ENC_KEY = "enc";
     private static final String JSON_SIGN_KEY = "sign";
     private static final String JSON_POW_KEY = "pow";
+    private static final String JSON_SIG_KEY = "sig";
     private long timestamp;
     private String message;
     private String hash;
+    private String signature;
     private SigningDocument signingDocument;
     private EncryptionDocument encryptionDocument;
     private PoW pow;
@@ -58,17 +61,49 @@ public class KeyDocument {
         setTimestamp(json.getLong(JSON_TIME_KEY));
 
         try {
-            SigningDocument signing = signingDocument.fromJson(json.getJSONObject(JSON_SIGN_KEY));
+            SigningDocument signing = SigningDocument.fromJson(json.getJSONObject(JSON_SIGN_KEY));
             setSigningDocument(signing);
 
-            EncryptionDocument encrypt = encryptionDocument.fromJson(json.getJSONObject(JSON_ENC_KEY));
+            EncryptionDocument encrypt = EncryptionDocument.fromJson(json.getJSONObject(JSON_ENC_KEY));
             setEncryptionDocument(encrypt);
+
+            PoW pow = PoW.fromJson(json.getJSONObject(JSON_POW_KEY));
+            setPow(pow);
         } catch (NoSuchAlgorithmException | DataFormatException | InvalidKeySpecException e) {
             e.printStackTrace();
         }
+
+        setHash(json.getString(JSON_HASH_KEY));
+
+        setSignature(json.getString(JSON_SIG_KEY));
     }
 
-    private void sign(byte[] data) {}
+    public boolean isSignatureOk() {
+        boolean is = false;
+        byte[] sigBs = Ez.getInstance().notEz(getSignature());
+
+        // need to remove signature because it's not included in original signing
+        JSONObject json = new JSONObject(toString());
+        json.remove(JSON_SIG_KEY);
+        /* TODO : get json string into bytes
+        */
+
+        return is;
+    }
+
+    /**
+     * aggregate entire JSON doc and sign it
+     * @param data
+     */
+    private void sign(byte[] data) {
+        try {
+            byte[] signatureBs = SignIt.sign(data, getSigningDocument().getPrivateKey());
+            String signatureS = Ez.getInstance().ez(signatureBs);
+            setSignature(signatureS);
+        } catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException e) {
+            e.printStackTrace();
+        }
+    }
 
     private byte[] aggregateJsonBytes() {
         return toString().getBytes(StandardCharsets.UTF_8);
@@ -131,6 +166,8 @@ public class KeyDocument {
 
         j.put(JSON_HASH_KEY, getHash());
 
+        j.put(JSON_SIG_KEY, getSignature());
+
         return j.toString();
     }
 
@@ -140,5 +177,13 @@ public class KeyDocument {
 
     public void setPow(PoW pow) {
         this.pow = pow;
+    }
+
+    public String getSignature() {
+        return signature;
+    }
+
+    public void setSignature(String signature) {
+        this.signature = signature;
     }
 }

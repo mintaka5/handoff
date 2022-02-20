@@ -8,6 +8,9 @@ import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SignatureException;
 
 public class Handoff {
     private Path homeDirectory;
@@ -59,7 +62,8 @@ public class Handoff {
         }
     }
 
-    public KeyDocument fromFile(Path path) throws IOException {
+    public KeyDocument fromFile(Path path) throws IOException, NoSuchAlgorithmException, SignatureException,
+            InvalidKeyException {
         KeyDocument doc = new KeyDocument();
         String jsonS = Files.readString(path);
         JSONObject json = new JSONObject(jsonS);

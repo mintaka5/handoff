@@ -9,6 +9,9 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SignatureException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -44,7 +47,8 @@ public class HandoffWindow extends JFrame {
             Files.list(handoff.getHomeDirectory()).forEach(path -> {
                 try {
                     KeyDocument doc = handoff.fromFile(path);
-                } catch (IOException e) {
+
+                } catch (IOException | NoSuchAlgorithmException | SignatureException | InvalidKeyException e) {
                     e.printStackTrace();
                 }
             });
@@ -66,6 +70,7 @@ public class HandoffWindow extends JFrame {
 
     private void buildUI() {
         JPanel center = new JPanel();
+        center.setBorder(new EmptyBorder(10, 10, 10, 10));
         center.setLayout(new BorderLayout());
         JLabel tempLbl = new JLabel("Hi there!");
         center.add(BorderLayout.CENTER, tempLbl);
