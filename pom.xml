@@ -42,12 +42,8 @@
             <artifactId>base58</artifactId>
             <version>0.0.2</version>
         </dependency>
-        <dependency>
-            <groupId>org.webjars.npm</groupId>
-            <artifactId>ripemd160</artifactId>
-            <version>2.0.2</version>
-        </dependency>
 
+        <!-- maven specific dependencies -->
         <dependency>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-assembly-plugin</artifactId>

@@ -6,6 +6,7 @@ import org.white5moke.handoff.know.PoW;
 
 import java.nio.charset.StandardCharsets;
 import java.security.*;
+import java.security.spec.InvalidKeySpecException;
 import java.time.Instant;
 import java.util.zip.DataFormatException;
 
@@ -50,21 +51,15 @@ public class KeyDocument {
     public void fromJson(JSONObject json) {
         setMessage(json.getString(JSON_MSG_KEY).strip());
         setTimestamp(json.getLong(JSON_TIME_KEY));
-        setSigningDocument(new SigningDocument());
-        setEncryptionDocument(new EncryptionDocument());
 
         try {
             getSigningDocument().fromJson(json.getJSONObject(JSON_SIGN_KEY));
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        } catch (DataFormatException e) {
+        } catch (NoSuchAlgorithmException | DataFormatException | InvalidKeySpecException e) {
             e.printStackTrace();
         }
     }
 
-    private void sign(byte[] data) {
-        
-    }
+    private void sign(byte[] data) {}
 
     private byte[] aggregateJsonBytes() {
         return toString().getBytes(StandardCharsets.UTF_8);

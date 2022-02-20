@@ -23,6 +23,7 @@ public class Ez {
      * @return
      */
     public String ez(byte[] stuff) {
+
         return Base58.encode(stuff);
     }
 
