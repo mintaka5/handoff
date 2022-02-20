@@ -3,7 +3,11 @@ package org.white5moke.handoff.document;
 import org.json.JSONObject;
 import org.white5moke.handoff.client.Ez;
 
+import java.nio.charset.StandardCharsets;
 import java.security.*;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 
 public class EncryptionDocument {
@@ -53,5 +57,28 @@ public class EncryptionDocument {
         j.put(JSON_PUB_KEY, pubEz.ez(getPublicKey().getEncoded()));
 
         return j.toString();
+    }
+
+    public EncryptionDocument fromJson(JSONObject json) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        EncryptionDocument encDoc = new EncryptionDocument();
+
+        String pubBase64 = Base64.getEncoder().encodeToString(
+                Ez.getInstance().notEz(json.getString(JSON_PUB_KEY))
+        );
+        String privBase64 = Base64.getEncoder().encodeToString(
+                Ez.getInstance().notEz(json.getString(JSON_PRIV_KEY))
+        );
+
+        PKCS8EncodedKeySpec spec1 = new PKCS8EncodedKeySpec(privBase64.getBytes(StandardCharsets.UTF_8));
+        KeyFactory factory = KeyFactory.getInstance(ALGORITHM);
+        PrivateKey privKey = factory.generatePrivate(spec1);
+
+        X509EncodedKeySpec spec2 = new X509EncodedKeySpec(pubBase64.getBytes(StandardCharsets.UTF_8));
+        PublicKey pubKey = factory.generatePublic(spec2);
+
+        setPrivateKey(privKey);
+        setPublicKey(pubKey);
+
+        return encDoc;
     }
 }

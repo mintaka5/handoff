@@ -55,7 +55,8 @@ public class SigningDocument {
         X509EncodedKeySpec spec1 = new X509EncodedKeySpec(pubBase64.getBytes(StandardCharsets.UTF_8));
         PublicKey publicKey = factory.generatePublic(spec1);
 
-
+        setPrivateKey(privateKey);
+        setPublicKey(publicKey);
 
         return signingDoc;
     }

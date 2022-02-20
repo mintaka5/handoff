@@ -48,12 +48,21 @@ public class KeyDocument {
         sign(aggregateJsonBytes());
     }
 
+    /**
+     * build out key doc based on json from file
+     * @param json
+     * @return
+     */
     public void fromJson(JSONObject json) {
         setMessage(json.getString(JSON_MSG_KEY).strip());
         setTimestamp(json.getLong(JSON_TIME_KEY));
 
         try {
-            getSigningDocument().fromJson(json.getJSONObject(JSON_SIGN_KEY));
+            SigningDocument signing = signingDocument.fromJson(json.getJSONObject(JSON_SIGN_KEY));
+            setSigningDocument(signing);
+
+            EncryptionDocument encrypt = encryptionDocument.fromJson(json.getJSONObject(JSON_ENC_KEY));
+            setEncryptionDocument(encrypt);
         } catch (NoSuchAlgorithmException | DataFormatException | InvalidKeySpecException e) {
             e.printStackTrace();
         }
