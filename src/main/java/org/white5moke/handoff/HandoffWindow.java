@@ -1,5 +1,6 @@
 package org.white5moke.handoff;
 
+import org.apache.commons.lang3.RandomUtils;
 import org.json.JSONObject;
 import org.white5moke.handoff.document.KeyDocument;
 
@@ -13,6 +14,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SignatureException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class HandoffWindow extends JFrame {
@@ -47,7 +49,8 @@ public class HandoffWindow extends JFrame {
             Files.list(handoff.getHomeDirectory()).forEach(path -> {
                 try {
                     KeyDocument doc = handoff.fromFile(path);
-
+                    // make sure signature is a-ok, to add it to key doc list!
+                    if(doc.isSignatureOk()) keyDocuments.add(doc);
                 } catch (IOException | NoSuchAlgorithmException | SignatureException | InvalidKeyException e) {
                     e.printStackTrace();
                 }
@@ -69,13 +72,6 @@ public class HandoffWindow extends JFrame {
     }
 
     private void buildUI() {
-        JPanel center = new JPanel();
-        center.setBorder(new EmptyBorder(10, 10, 10, 10));
-        center.setLayout(new BorderLayout());
-        JLabel tempLbl = new JLabel("Hi there!");
-        center.add(BorderLayout.CENTER, tempLbl);
-        getContentPane().add(BorderLayout.CENTER, center);
-
         JPanel top = new JPanel();
         top.setLayout(new BorderLayout());
         JPanel messagePanel = new JPanel();
@@ -90,13 +86,27 @@ public class HandoffWindow extends JFrame {
         messageText = buildTextField("message", 0, messagePanel);
         top.add(BorderLayout.CENTER, messagePanel);
 
-        getContentPane().add(BorderLayout.NORTH, top);
-
         JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(new GridLayout(1, 1, 5, 5));
         newKeyButton = new JButton("new key");
         buttonPanel.add(newKeyButton);
 
+        JPanel centerPanel = new JPanel();
+        centerPanel.setBackground(Color.GREEN);
+        centerPanel.setLayout(new CardLayout());
+
+        JPanel docListPanel = new JPanel();
+        docListPanel.setLayout(new GridLayout(getKeyDocuments().size(), 1));
+        getKeyDocuments().forEach(d -> {
+            JPanel pnl = new JPanel();
+            JLabel lbl = new JLabel(d.getHash());
+            pnl.add(lbl);
+            docListPanel.add(pnl);
+        });
+        centerPanel.add(docListPanel);
+
+        getContentPane().add(BorderLayout.NORTH, top);
+        getContentPane().add(BorderLayout.CENTER, centerPanel);
         getContentPane().add(BorderLayout.SOUTH, buttonPanel);
     }
 

@@ -85,8 +85,13 @@ public class KeyDocument {
         // need to remove signature because it's not included in original signing
         JSONObject json = new JSONObject(toString());
         json.remove(JSON_SIG_KEY);
-        /* TODO : get json string into bytes
-        */
+        String jsonS = json.toString();
+        byte[] origBs = jsonS.getBytes(StandardCharsets.UTF_8);
+        try {
+            is = SignIt.isValid(origBs, sigBs, getSigningDocument().getPublicKey());
+        } catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException e) {
+            is = false;
+        }
 
         return is;
     }
