@@ -5,7 +5,9 @@ import org.json.JSONObject;
 import org.white5moke.handoff.document.KeyDocument;
 
 import javax.swing.*;
+import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.io.IOException;
@@ -98,12 +100,27 @@ public class HandoffWindow extends JFrame {
         JPanel docListPanel = new JPanel();
         docListPanel.setLayout(new GridLayout(getKeyDocuments().size(), 1));
         getKeyDocuments().forEach(d -> {
-            JPanel pnl = new JPanel();
-            JLabel lbl = new JLabel(d.getHash());
-            pnl.add(lbl);
-            docListPanel.add(pnl);
+            // add stuff to doc list
+            JPanel docPanel = new JPanel();
+            docPanel.setBorder(new CompoundBorder(
+                    new EmptyBorder(10, 10, 10, 10),
+                    new LineBorder(Color.GRAY, 1, true)
+                    )
+            );
+            docPanel.setLayout(new GridBagLayout());
+            JLabel hashLabel = new JLabel(d.getHash());
+            GridBagConstraints gcHashLabel = new GridBagConstraints();
+            gcHashLabel.fill = GridBagConstraints.BOTH;
+            gcHashLabel.insets = new Insets(0, 0, 5, 5);
+            gcHashLabel.gridx = 0;
+            gcHashLabel.gridy = 0;
+            docPanel.add(hashLabel, gcHashLabel);
+            docListPanel.add(docPanel);
         });
-        centerPanel.add(docListPanel);
+        JScrollPane docScroll = new JScrollPane(docListPanel);
+        docScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        docScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        centerPanel.add(docScroll);
 
         getContentPane().add(BorderLayout.NORTH, top);
         getContentPane().add(BorderLayout.CENTER, centerPanel);
