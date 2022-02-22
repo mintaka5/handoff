@@ -10,6 +10,8 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.security.InvalidKeyException;
@@ -108,6 +110,17 @@ public class HandoffWindow extends JFrame {
                     )
             );
             docPanel.setLayout(new GridBagLayout());
+            docPanel.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseEntered(MouseEvent e) {
+                    e.getComponent().setBackground(Color.GRAY);
+                }
+
+                @Override
+                public void mouseExited(MouseEvent e) {
+                    e.getComponent().setBackground(UIManager.getColor("Panel.background"));
+                }
+            });
             JLabel hashLabel = new JLabel(d.getHash());
             GridBagConstraints gcHashLabel = new GridBagConstraints();
             gcHashLabel.fill = GridBagConstraints.BOTH;
