@@ -17,6 +17,10 @@ import java.nio.file.Files;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SignatureException;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -114,13 +118,22 @@ public class HandoffWindow extends JFrame {
                 @Override
                 public void mouseEntered(MouseEvent e) {
                     e.getComponent().setBackground(Color.GRAY);
+                    //e.getComponent().setForeground(Color.WHITE);
                 }
 
                 @Override
                 public void mouseExited(MouseEvent e) {
                     e.getComponent().setBackground(UIManager.getColor("Panel.background"));
+                    //e.getComponent().setBackground(UIManager.getColor("Panel.foreground"));
+                }
+
+                @Override
+                public void mouseReleased(MouseEvent e) {
+                    System.out.println("DEBUG :: mouse event: signature - " + d.getSignature());
                 }
             });
+
+            // add hash label for ID
             JLabel hashLabel = new JLabel(d.getHash());
             GridBagConstraints gcHashLabel = new GridBagConstraints();
             gcHashLabel.fill = GridBagConstraints.BOTH;
@@ -128,6 +141,17 @@ public class HandoffWindow extends JFrame {
             gcHashLabel.gridx = 0;
             gcHashLabel.gridy = 0;
             docPanel.add(hashLabel, gcHashLabel);
+
+            // add time label
+            ZonedDateTime dateTime = ZonedDateTime.ofInstant(Instant.ofEpochMilli(d.getTimestamp()), ZoneOffset.UTC);
+            String timeLabelText = dateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) + " UTC";
+            JLabel timeLabel = new JLabel(timeLabelText);
+            GridBagConstraints gcTimeLabel = new GridBagConstraints();
+            gcTimeLabel.fill = GridBagConstraints.BOTH;
+            gcTimeLabel.insets = new Insets(0, 0, 5, 5);
+            gcTimeLabel.gridx = 0;
+            gcTimeLabel.gridy = 1;
+            docPanel.add(timeLabel, gcTimeLabel);
             docListPanel.add(docPanel);
         });
         JScrollPane docScroll = new JScrollPane(docListPanel);
