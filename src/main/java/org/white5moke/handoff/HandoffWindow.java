@@ -116,22 +116,21 @@ public class HandoffWindow extends JFrame {
             docPanel.setLayout(new GridBagLayout());
             docPanel.addMouseListener(new MouseAdapter() {
                 @Override
-                public void mouseEntered(MouseEvent e) {
-                    e.getComponent().setBackground(Color.GRAY);
-                    //e.getComponent().setForeground(Color.WHITE);
-                }
-
-                @Override
-                public void mouseExited(MouseEvent e) {
-                    e.getComponent().setBackground(UIManager.getColor("Panel.background"));
-                    //e.getComponent().setBackground(UIManager.getColor("Panel.foreground"));
-                }
-
-                @Override
                 public void mouseReleased(MouseEvent e) {
                     System.out.println("DEBUG :: mouse event: signature - " + d.getSignature());
                 }
             });
+
+            // add message label if not empty
+            if(!d.getMessage().isEmpty()) {
+                JLabel msgLabel = new JLabel(d.getMessage());
+                GridBagConstraints gcMsgLabel = new GridBagConstraints();
+                gcMsgLabel.fill = GridBagConstraints.BOTH;
+                gcMsgLabel.insets = new Insets(0, 0, 5, 5);
+                gcMsgLabel.gridx = 0;
+                gcMsgLabel.gridy = 0;
+                docPanel.add(msgLabel, gcMsgLabel);
+            }
 
             // add hash label for ID
             JLabel hashLabel = new JLabel(d.getHash());
@@ -139,7 +138,7 @@ public class HandoffWindow extends JFrame {
             gcHashLabel.fill = GridBagConstraints.BOTH;
             gcHashLabel.insets = new Insets(0, 0, 5, 5);
             gcHashLabel.gridx = 0;
-            gcHashLabel.gridy = 0;
+            gcHashLabel.gridy = 1;
             docPanel.add(hashLabel, gcHashLabel);
 
             // add time label
@@ -150,7 +149,7 @@ public class HandoffWindow extends JFrame {
             gcTimeLabel.fill = GridBagConstraints.BOTH;
             gcTimeLabel.insets = new Insets(0, 0, 5, 5);
             gcTimeLabel.gridx = 0;
-            gcTimeLabel.gridy = 1;
+            gcTimeLabel.gridy = 2;
             docPanel.add(timeLabel, gcTimeLabel);
             docListPanel.add(docPanel);
         });
@@ -159,9 +158,19 @@ public class HandoffWindow extends JFrame {
         docScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         centerPanel.add(docScroll);
 
+        // panel for SOUTH
+        JPanel southPanel = new JPanel();
+        southPanel.setLayout(new BorderLayout());
+        JPanel southCenterPanel = new JPanel();
+        southCenterPanel.setLayout(new CardLayout());
+        JPanel homeCard = new JPanel();
+        southCenterPanel.add(homeCard, 0);
+        southPanel.add(southCenterPanel, BorderLayout.CENTER);
+        southPanel.add(buttonPanel, BorderLayout.SOUTH);
+
         getContentPane().add(BorderLayout.NORTH, top);
         getContentPane().add(BorderLayout.CENTER, centerPanel);
-        getContentPane().add(BorderLayout.SOUTH, buttonPanel);
+        getContentPane().add(BorderLayout.SOUTH, southPanel);
     }
 
     private JTextField buildTextField(String label, int position, JPanel containerPanel) {
