@@ -1,7 +1,5 @@
 package org.white5moke.handoff;
 
-import org.apache.commons.lang3.RandomUtils;
-import org.json.JSONObject;
 import org.white5moke.handoff.document.KeyDocument;
 
 import javax.swing.*;
@@ -18,11 +16,11 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SignatureException;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class HandoffWindow extends JFrame {
@@ -31,6 +29,7 @@ public class HandoffWindow extends JFrame {
     private JButton newKeyButton;
     private JTextField messageText;
     private List<KeyDocument> keyDocuments = new ArrayList<>();
+    private JPanel docListPanel;
 
     public HandoffWindow() {
         super("handoff");
@@ -42,8 +41,6 @@ public class HandoffWindow extends JFrame {
         setContentPane(basePanel);
 
         handoff = new Handoff();
-
-        updateKeyDocuments();
 
         buildUI();
 
@@ -59,13 +56,16 @@ public class HandoffWindow extends JFrame {
                     KeyDocument doc = handoff.fromFile(path);
                     // make sure signature is a-ok, to add it to key doc list!
                     if(doc.isSignatureOk()) keyDocuments.add(doc);
-                } catch (IOException | NoSuchAlgorithmException | SignatureException | InvalidKeyException e) {
+                } catch (IOException | NoSuchAlgorithmException | SignatureException |
+                        InvalidKeyException e) {
                     e.printStackTrace();
                 }
             });
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        updateDocList();
     }
 
     private void listeners() {
@@ -103,21 +103,51 @@ public class HandoffWindow extends JFrame {
         centerPanel.setBackground(Color.GREEN);
         centerPanel.setLayout(new CardLayout());
 
-        JPanel docListPanel = new JPanel();
+        docListPanel = new JPanel();
         docListPanel.setLayout(new GridLayout(getKeyDocuments().size(), 1));
+        updateKeyDocuments();
+
+        JScrollPane docScroll = new JScrollPane(docListPanel);
+        docScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        docScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        centerPanel.add(docScroll);
+
+
+        // panel for SOUTH
+        JPanel southPanel = new JPanel();
+        southPanel.setLayout(new BorderLayout());
+        JPanel southCenterPanel = new JPanel();
+        southCenterPanel.setLayout(new CardLayout());
+        JPanel homeCard = new JPanel();
+        JPanel detailCard = new JPanel();
+        southCenterPanel.add(homeCard, 0);
+        southCenterPanel.add(detailCard, 1);
+        southPanel.add(southCenterPanel, BorderLayout.CENTER);
+        southPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        getContentPane().add(BorderLayout.NORTH, top);
+        getContentPane().add(BorderLayout.CENTER, centerPanel);
+        getContentPane().add(BorderLayout.SOUTH, southPanel);
+    }
+
+    private void updateDocList() {
+        docListPanel.removeAll();
+
         getKeyDocuments().forEach(d -> {
             // add stuff to doc list
             JPanel docPanel = new JPanel();
             docPanel.setBorder(new CompoundBorder(
-                    new EmptyBorder(10, 10, 10, 10),
-                    new LineBorder(Color.GRAY, 1, true)
+                            new EmptyBorder(10, 10, 10, 10),
+                            new LineBorder(Color.GRAY, 1, true)
                     )
             );
             docPanel.setLayout(new GridBagLayout());
             docPanel.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseReleased(MouseEvent e) {
-                    System.out.println("DEBUG :: mouse event: signature - " + d.getSignature());
+                    System.out.print("DEBUG :: mouse event: signature - " + d.getSignature());
+                    System.out.print(" :: hash: " + d.getHash());
+                    System.out.println(" :: timestamp: " + Instant.ofEpochMilli(d.getTimestamp()).toString());
                 }
             });
 
@@ -153,24 +183,6 @@ public class HandoffWindow extends JFrame {
             docPanel.add(timeLabel, gcTimeLabel);
             docListPanel.add(docPanel);
         });
-        JScrollPane docScroll = new JScrollPane(docListPanel);
-        docScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        docScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        centerPanel.add(docScroll);
-
-        // panel for SOUTH
-        JPanel southPanel = new JPanel();
-        southPanel.setLayout(new BorderLayout());
-        JPanel southCenterPanel = new JPanel();
-        southCenterPanel.setLayout(new CardLayout());
-        JPanel homeCard = new JPanel();
-        southCenterPanel.add(homeCard, 0);
-        southPanel.add(southCenterPanel, BorderLayout.CENTER);
-        southPanel.add(buttonPanel, BorderLayout.SOUTH);
-
-        getContentPane().add(BorderLayout.NORTH, top);
-        getContentPane().add(BorderLayout.CENTER, centerPanel);
-        getContentPane().add(BorderLayout.SOUTH, southPanel);
     }
 
     private JTextField buildTextField(String label, int position, JPanel containerPanel) {
