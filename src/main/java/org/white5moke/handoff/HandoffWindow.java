@@ -7,16 +7,13 @@ import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SignatureException;
 import java.time.Instant;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -30,6 +27,8 @@ public class HandoffWindow extends JFrame {
     private JTextField messageText;
     private List<KeyDocument> keyDocuments = new ArrayList<>();
     private JPanel docListPanel;
+    private JLabel homeMsgText;
+    private JLabel homeHashTxt;
 
     public HandoffWindow() {
         super("handoff");
@@ -49,9 +48,16 @@ public class HandoffWindow extends JFrame {
         setVisible(true);
     }
 
+    /**
+     * updates list of key documents based off of
+     * user's home path.
+     */
     private void updateKeyDocuments() {
         try {
-            Files.list(handoff.getHomeDirectory()).forEach(path -> {
+            // resort file list and order by modification date descending order
+            Files.list(handoff.getHomeDirectory()).sorted((a, b) -> {
+                return (int) (b.toFile().lastModified() - a.toFile().lastModified());
+            }).forEach(path -> {
                 try {
                     KeyDocument doc = handoff.fromFile(path);
                     // make sure signature is a-ok, to add it to key doc list!
@@ -68,6 +74,9 @@ public class HandoffWindow extends JFrame {
         updateDocList();
     }
 
+    /**
+     * a place to keep all GUI listeners for sanity's sake
+     */
     private void listeners() {
         newKeyButton.addActionListener(new AbstractAction() {
             @Override
@@ -77,15 +86,29 @@ public class HandoffWindow extends JFrame {
                 updateKeyDocuments();
             }
         });
+
+        messageText.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                if(messageText.getText().length() > 1) {
+                    newKeyButton.setEnabled(true);
+                } else {
+                    newKeyButton.setEnabled(false);
+                }
+            }
+        });
     }
 
+    /**
+     * build out interface
+     */
     private void buildUI() {
         JPanel top = new JPanel();
         top.setLayout(new BorderLayout());
         JPanel messagePanel = new JPanel();
         messagePanel.setBorder(new EmptyBorder(10, 10, 10, 10));
         GridBagLayout messageLayout = new GridBagLayout();
-        messageLayout.columnWidths = new int[] {86, 86, 0};
+        messageLayout.columnWidths = new int[] {100, 100, 0};
         messageLayout.rowHeights = new int[] {20, 20, 20, 20, 20, 0};
         messageLayout.columnWeights = new double[] {0, 1, Double.MIN_VALUE};
         messageLayout.rowWeights = new double[] {0, 0, 0, 0, 0, Double.MIN_VALUE};
@@ -97,6 +120,8 @@ public class HandoffWindow extends JFrame {
         JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(new GridLayout(1, 1, 5, 5));
         newKeyButton = new JButton("new key");
+        newKeyButton.setEnabled(false);
+
         buttonPanel.add(newKeyButton);
 
         JPanel centerPanel = new JPanel();
@@ -112,13 +137,31 @@ public class HandoffWindow extends JFrame {
         docScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         centerPanel.add(docScroll);
 
-
         // panel for SOUTH
         JPanel southPanel = new JPanel();
         southPanel.setLayout(new BorderLayout());
         JPanel southCenterPanel = new JPanel();
         southCenterPanel.setLayout(new CardLayout());
+
         JPanel homeCard = new JPanel();
+        // set up home card
+        GridBagLayout homeCardLayout = new GridBagLayout();
+        homeCardLayout.columnWidths = new int[] {100, 100, 0};
+        homeCardLayout.rowHeights = new int[] {20, 20, 20, 20, 20, 0};
+        homeCardLayout.columnWeights = new double[] {0, 1, Double.MIN_VALUE};
+        homeCardLayout.rowWeights = new double[] {0, 0, 0, 0, 0, Double.MIN_VALUE};
+        messagePanel.setLayout(homeCardLayout);
+        // get latest key doc file in list
+        KeyDocument latestDoc = getKeyDocuments().stream().findFirst().orElse(null);
+        JLabel homeMsgLbl = new JLabel("message:");
+        homeCard.add(homeMsgLbl, gbc(0, 0, new int[] {0, 0, 5, 5}));
+        homeMsgText = new JLabel(latestDoc.getMessage());
+        homeCard.add(homeMsgText, gbc(1, 0, new int[] {0, 0, 5, 5}));
+        JLabel homeHashLbl = new JLabel("hash:");
+        homeHashTxt = new JLabel(latestDoc.getHash());
+        homeCard.add(homeHashLbl, gbc(0, 1, new int[] {0, 0, 5, 5}));
+        homeCard.add(homeHashTxt, gbc(1, 1, new int[] {0, 0, 5, 5}));
+
         JPanel detailCard = new JPanel();
         southCenterPanel.add(homeCard, 0);
         southCenterPanel.add(detailCard, 1);
@@ -130,6 +173,19 @@ public class HandoffWindow extends JFrame {
         getContentPane().add(BorderLayout.SOUTH, southPanel);
     }
 
+    public GridBagConstraints gbc(int gridX, int gridY, int[] insets) {
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.insets = new Insets(insets[0], insets[1], insets[2], insets[3]);
+        gbc.gridx = gridX;
+        gbc.gridy = gridY;
+
+        return gbc;
+    }
+
+    /**
+     * update the GUI list items
+     */
     private void updateDocList() {
         docListPanel.removeAll();
 
@@ -185,22 +241,19 @@ public class HandoffWindow extends JFrame {
         });
     }
 
+    /**
+     * basic JTextField creator utility
+     * @param label
+     * @param position
+     * @param containerPanel
+     * @return JTextField
+     */
     private JTextField buildTextField(String label, int position, JPanel containerPanel) {
         JLabel lbl = new JLabel(label);
-        GridBagConstraints gcLabel = new GridBagConstraints();
-        gcLabel.fill = GridBagConstraints.BOTH;
-        gcLabel.insets = new Insets(0, 0, 5, 5);
-        gcLabel.gridx = 0;
-        gcLabel.gridy = position;
-        containerPanel.add(lbl, gcLabel);
+        containerPanel.add(lbl, gbc(0, position, new int[] {0, 0, 5, 5}));
 
         JTextField txt = new JTextField();
-        GridBagConstraints gcTxt = new GridBagConstraints();
-        gcTxt.fill = GridBagConstraints.BOTH;
-        gcTxt.insets = new Insets(0, 0, 5, 0);
-        gcTxt.gridx = 1;
-        gcTxt.gridy = position;
-        containerPanel.add(txt, gcTxt);
+        containerPanel.add(txt, gbc(1, position, new int[] {0, 0, 5, 5}));
         txt.setColumns(10);
 
         return txt;
