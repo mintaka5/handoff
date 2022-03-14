@@ -1,5 +1,7 @@
 package org.white5moke.handoff.doc;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -7,7 +9,7 @@ import java.nio.file.Path;
 public class TheStore {
     private Path path;
 
-    private String currentHash;
+    private String currentHash = StringUtils.EMPTY;
 
     public TheStore(Path dir) {
         setPath(dir);

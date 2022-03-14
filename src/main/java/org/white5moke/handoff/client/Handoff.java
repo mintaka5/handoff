@@ -3,8 +3,13 @@ package org.white5moke.handoff.client;
 import org.apache.commons.lang3.StringUtils;
 import org.white5moke.handoff.doc.TheStore;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.Security;
+import java.sql.Date;
+import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Scanner;
 
@@ -28,6 +33,9 @@ public class Handoff implements Runnable {
 
     @Override
     public void run() {
+        // set a current doc hash if it's not set
+        doCurrentCheck();
+
         while(true) {
             System.out.print(">> ");
 
@@ -47,10 +55,33 @@ public class Handoff implements Runnable {
                 case "bye", "exit", "quit" -> commands.sayGoodbye();
                 case "hash" -> commands.hashIt(theMessage);
                 case "list", "ls", "keys" -> commands.listEm(getStore());
-                case "use", "select", "pick" -> commands.selectIt(theMessage);
+                case "use", "select", "pick" -> commands.useIt(theMessage);
                 default -> {}
             }
         }
+    }
+
+    /**
+     * sloppy i know but i didn't want to dirty up run()
+     */
+    private void doCurrentCheck() {
+        Path file = null;
+        try {
+            file = Files.list(getUserHome())
+                    .sorted((a, b) -> Long.compare(b.toFile().lastModified(), a.toFile().lastModified()))
+                    .findFirst().orElse(null);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // if not null, and is empty, set a current hash
+        if (getStore().getCurrentHash().isEmpty() && file != null)
+            getStore().setCurrentHash(file.getFileName().toString());
+        SimpleDateFormat formatter = new SimpleDateFormat("MMM dd yyyy HH:mm:ss");
+        System.out.printf("<< current key doc: `%s` @ %s%n",
+                getStore().getCurrentHash(),
+                formatter.format(Date.from(Instant.ofEpochMilli(file.toFile().lastModified()))));
+
     }
 
     public Path getUserHome() {

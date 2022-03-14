@@ -42,11 +42,6 @@
             <artifactId>base58</artifactId>
             <version>0.0.2</version>
         </dependency>
-        <dependency>
-            <groupId>berkeleydb</groupId>
-            <artifactId>berkeleydb</artifactId>
-            <version>1.5.1</version>
-        </dependency>
 
         <dependency>
             <groupId>org.apache.maven.plugins</groupId>
