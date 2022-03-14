@@ -6,7 +6,6 @@ import org.json.JSONObject;
 import org.white5moke.handoff.know.PoW;
 
 import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import java.io.IOException;
