@@ -56,6 +56,9 @@ public class Handoff implements Runnable {
                 case "hash" -> commands.hashIt(theMessage);
                 case "list", "ls", "keys" -> commands.listEm(getStore());
                 case "use", "select", "pick" -> commands.useIt(theMessage);
+                case "current", "cur" -> commands.currentDoc();
+                case "help" -> commands.helpMe(theMessage);
+                case "peek", "show", "deets", "view" -> commands.deets(theMessage);
                 default -> {}
             }
         }

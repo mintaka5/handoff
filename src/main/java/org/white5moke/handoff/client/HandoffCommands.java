@@ -115,6 +115,37 @@ public class HandoffCommands {
         }
     }
 
+    public void helpMe(String msg) {
+        msg = msg.strip();
+        String what = "";
+        if(!msg.isEmpty()) {
+            String[] stuff = StringUtils.split(msg, StringUtils.SPACE);
+            String cmd = stuff[1].strip();
+
+            // TODO : individual command help
+        } else {
+            // list all
+            System.out.println("help: list all available commands");
+            System.out.println("gen/generate: generate a new key document. add text after command, to include message.");
+        }
+    }
+
+    public void currentDoc() {
+        Path file = Path.of(getStore().getPath().toString(), getStore().getCurrentHash());
+        System.out.printf("<< current key doc hash: `%s` @ %s%n",
+                getStore().getCurrentHash(),
+                formatter.format(Date.from(Instant.ofEpochMilli(file.toFile().lastModified())))
+                );
+    }
+
+    public void deets(String msg) {
+        msg = msg.strip();
+        String what = "";
+        if(!msg.isEmpty()) {
+
+        }
+    }
+
     public void setScan(Scanner scan) {
         this.scan = scan;
     }
