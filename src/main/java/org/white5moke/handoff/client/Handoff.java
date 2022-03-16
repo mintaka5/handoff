@@ -59,7 +59,7 @@ public class Handoff implements Runnable {
                 case "current", "cur" -> commands.currentDoc();
                 case "help" -> commands.helpMe(theMessage);
                 case "peek", "show", "deets", "view" -> commands.deets(theMessage);
-                default -> {}
+                default -> commands.four0Four();
             }
         }
     }
