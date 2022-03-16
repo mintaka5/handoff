@@ -1,0 +1,14 @@
+{
+  "tag": "[string] a randomly generated 4 byte string",
+  "timestamp": "[long] time of creation",
+  "message": "[string] user-defined text message",
+  "hash": "[string] a sha256 hash of entire key document",
+  "signing": {
+    "priv": "[string] base64-encoded ec private signing key",
+    "pub": "[string] base64-encoded ec public key"
+  },
+  "encrypting": {
+    "priv": "[string] base64-encoded rsa private signing key",
+    "pub": "[string] base64-encoded rsa public signing key"
+  }
+}

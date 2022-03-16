@@ -2,25 +2,41 @@
 
 #### *anonymous identity manager.*
 
-basically manages key documents (a protocol set forth in this software). these are used to manage secure 
+basically manages key documents (a protocol set forth in this software, mentioned below). these are used to manage secure 
 messaging, identity, and signing. the goal with this software is to eventually allow any user to participate 
 anonymously in any given environment.
 
 #### what can it do?
 
+````shell
+bye | exit | quit                : close application.
+cur | current                    : what is the current document being used?
+gen | generate <string>?         : generate a new key document. add text after command, to include message.
+hash <string>                    : provide a text string, get a sha256 hash of it.
+help                             : list all available commands.
+ls | list | keys                 : get a list of all your key documents.
+use | select | pick <num>        : set the default/current document to be used for things like signing or encrypting.
+view | peek | show | deets <num> : provides some more details about the document.
 ````
-bye : exit the app.
-cur : what is your current key document `cur`
-del : deletes all your key documents. be careful! `del`
-echo : prints user input. `echo <any text string>`
-gen : generate a new key document. message is optional. `gen [<message>]`
-help : help information.
-list : list all key documents. sorted by most recent first `list`
-peek : view the details of a key document `peek <# from `list`>`
-sign : sign a message. `sign <any text here>`
-use : designate currently used key document. `use <# from `list`>`
-vsign : verify a signed message. user will be prompted for public key, original message, and signature. `vsign`.
-````
+
+#### json document policy
+
+```json
+{
+  "tag": "[string] a randomly generated 4 byte string",
+  "timestamp": "[long] time of creation",
+  "message": "[string] user-defined text message",
+  "hash": "[string] a sha256 hash of entire key document",
+  "signing": {
+    "priv": "[string] base64-encoded ec private signing key",
+    "pub": "[string] base64-encoded ec public key"
+  },
+  "encrypting": {
+    "priv": "[string] base64-encoded rsa private signing key",
+    "pub": "[string] base64-encoded rsa public signing key"
+  }
+}
+```
 
 ---
 
