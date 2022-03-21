@@ -11,7 +11,9 @@ import java.sql.Date;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Scanner;
+import java.util.stream.Stream;
 
 public class Handoff implements Runnable {
     private Path userHome;
@@ -59,7 +61,7 @@ public class Handoff implements Runnable {
                 case "current", "cur" -> commands.currentDoc();
                 case "help" -> commands.helpMe(theMessage);
                 case "peek", "show", "deets", "view" -> commands.deets(theMessage);
-                case "copy", "get" -> {}
+                case "copy" -> commands.copyIt(theMessage);
                 default -> commands.four0Four();
             }
         }
@@ -82,9 +84,14 @@ public class Handoff implements Runnable {
         if (getStore().getCurrentHash().isEmpty() && file != null)
             getStore().setCurrentHash(file.getFileName().toString());
         SimpleDateFormat formatter = new SimpleDateFormat("MMM dd yyyy HH:mm:ss");
-        System.out.printf("<< current key doc: `%s` @ %s%n",
-                getStore().getCurrentHash(),
-                formatter.format(Date.from(Instant.ofEpochMilli(file.toFile().lastModified()))));
+
+        if(file != null) {
+            System.out.printf("<< current key doc: `%s` @ %s%n",
+                    getStore().getCurrentHash(),
+                    formatter.format(Date.from(Instant.ofEpochMilli(file.toFile().lastModified()))));
+        } else {
+            System.out.println("<x no key documents found. generate one!");
+        }
 
     }
 

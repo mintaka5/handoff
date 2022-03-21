@@ -1,8 +1,6 @@
 package org.white5moke.handoff.doc;
 
 import org.json.JSONObject;
-import org.white5moke.handoff.Utilities;
-import org.white5moke.handoff.Utilities.KeyWrapType;
 
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
@@ -55,10 +53,15 @@ public class EncryptionDocument {
     public JSONObject toJson() {
         JSONObject j = new JSONObject();
 
-        j.put("priv", Base64.getEncoder().encodeToString(getKeyPair().getPrivate().getEncoded()));
-        j.put("pub", Base64.getEncoder().encodeToString(getKeyPair().getPublic().getEncoded()));
+        j.put(PRIV_JSON_KEY, Base64.getEncoder().encodeToString(getKeyPair().getPrivate().getEncoded()));
+        j.put(PUB_JSON_KEY, Base64.getEncoder().encodeToString(getKeyPair().getPublic().getEncoded()));
 
         return j;
+    }
+
+    @Override
+    public String toString() {
+        return toJson().toString();
     }
 
     public KeyPair getKeyPair() {

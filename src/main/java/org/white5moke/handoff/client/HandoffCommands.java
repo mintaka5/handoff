@@ -2,7 +2,6 @@ package org.white5moke.handoff.client;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.json.JSONObject;
 import org.white5moke.handoff.doc.KeyDocument;
 import org.white5moke.handoff.doc.TheStore;
 
@@ -13,8 +12,10 @@ import java.nio.file.Path;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.sql.Date;
+import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Scanner;
@@ -31,6 +32,8 @@ public class HandoffCommands {
     }
 
     public void generateDocument(String msg) {
+        msg = msg.strip();
+
         KeyDocument keyDoc = new KeyDocument();
         keyDoc.generate(msg, 256, 2048);
 
@@ -38,12 +41,14 @@ public class HandoffCommands {
             Path save = getStore().save(keyDoc);
             System.out.printf("<< key document saved `%s`%n", save.toString());
         } catch (IOException e) {
-            System.out.printf("<x could not save key document: `%s`%n", e.getMessage());
+            System.err.printf("<x could not save key document: `%s`%n", e.getMessage());
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 
     public void nothingToDo() {
-        System.out.println("nothing to do.");
+        System.err.println("<x nothing to do.");
     }
 
     public void sayGoodbye() {
@@ -77,7 +82,7 @@ public class HandoffCommands {
                         );
                     });
         } catch (IOException e) {
-            System.out.printf("<x could not retrieve listing of path: `%s`%n", e.getMessage());
+            System.err.printf("<x could not retrieve listing of path: `%s`%n", e.getMessage());
         }
     }
 
@@ -194,11 +199,11 @@ public class HandoffCommands {
                                     Date.from(Instant.ofEpochMilli(doc.getTimestamp())))
                             );
                             System.out.println("<< message: " + doc.getMessage());
-                            System.out.printf("<< signing key: %s%n",
+                            System.out.printf("<< public signing key: %s%n",
                                     Base64.getEncoder()
                                             .encodeToString(doc.getSigning().getKeyPair().getPublic().getEncoded())
                             );
-                            System.out.printf("<< encryption key: %s%n",
+                            System.out.printf("<< public encryption key: %s%n",
                                     Base64.getEncoder()
                                             .encodeToString(doc.getEncrypting().getKeyPair().getPublic().getEncoded())
                             );
@@ -217,6 +222,10 @@ public class HandoffCommands {
         } else {
             System.out.println("<x please, provide a number from the list command. `ls` or `list`");
         }
+    }
+
+    public void copyIt(String theMessage) {
+
     }
 
     public void setScan(Scanner scan) {

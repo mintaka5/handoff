@@ -4,10 +4,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
+import java.sql.SQLException;
+import java.util.Base64;
 
 public class TheStore {
     private Path path;
@@ -33,7 +36,11 @@ public class TheStore {
         JSONObject json = null;
         try {
             content = Files.readString(filename);
-            json = new JSONObject(content);
+            // unpack base64 encoding and convert back into json data
+            // TODO : need to encrypt this with generated key and connect them somehow????
+            byte[] contentBs = Base64.getMimeDecoder().decode(content);
+            String contentS = new String(contentBs, StandardCharsets.UTF_8);
+            json = new JSONObject(contentS);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -43,6 +50,7 @@ public class TheStore {
 
     public KeyDocument docToKeyDocument(Path filename) throws NoSuchAlgorithmException, InvalidKeySpecException {
         JSONObject json = docToJson(filename);
+        //System.out.println(json.toString(4));
         KeyDocument doc = null;
         if(json != null) {
             doc = KeyDocument.fromJson(json);
@@ -59,10 +67,13 @@ public class TheStore {
         this.path = path;
     }
 
-    public Path save(KeyDocument keyDoc) throws IOException {
+    public Path save(KeyDocument keyDoc) throws IOException, SQLException {
         // write content to file
         Path filename = Files.createFile(Path.of(getPath().toString(), keyDoc.getHash()));
-        Files.writeString(filename, keyDoc.toString());
+
+        byte[] keyDocBs = keyDoc.toString().getBytes(StandardCharsets.UTF_8);
+        String keyDocB64 = Base64.getMimeEncoder().encodeToString(keyDocBs);
+        Files.writeString(filename, keyDocB64);
 
         return filename;
     }

@@ -13,6 +13,7 @@ public class SigningDocument {
     private static final String PUB_JSON_KEY = "pub";
 
     private KeyPair keyPair;
+    private KeyStore keyStore;
 
     public SigningDocument() {}
 
@@ -66,5 +67,13 @@ public class SigningDocument {
         j.put("pub", Base64.getEncoder().encodeToString(getKeyPair().getPublic().getEncoded()));
 
         return j;
+    }
+
+    public void setKeyStore(KeyStore k) {
+        this.keyStore = k;
+    }
+
+    public KeyStore getKeyStore() {
+        return keyStore;
     }
 }
