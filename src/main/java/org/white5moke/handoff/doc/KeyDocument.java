@@ -110,6 +110,8 @@ public class KeyDocument {
         doc.setSigning(SigningDocument.fromJson(json.getJSONObject(SIGN_JSON_KEY)));
         doc.setEncrypting(EncryptionDocument.fromJson(json.getJSONObject(ENC_JSON_KEY)));
 
+        doc.setSignature(Base64.getDecoder().decode(json.getString(SIGNATURE_JSON_KEY).strip()));
+
         return doc;
     }
 

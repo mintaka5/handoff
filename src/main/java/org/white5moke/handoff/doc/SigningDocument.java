@@ -2,6 +2,7 @@ package org.white5moke.handoff.doc;
 
 import org.json.JSONObject;
 
+import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
@@ -13,7 +14,6 @@ public class SigningDocument {
     private static final String PUB_JSON_KEY = "pub";
 
     private KeyPair keyPair;
-    private KeyStore keyStore;
 
     public SigningDocument() {}
 
@@ -69,11 +69,10 @@ public class SigningDocument {
         return j;
     }
 
-    public void setKeyStore(KeyStore k) {
-        this.keyStore = k;
-    }
+    public static PublicKey pubKeyFromBytes(byte[] key) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        X509EncodedKeySpec spec1 = new X509EncodedKeySpec(key);
+        KeyFactory factory = KeyFactory.getInstance("EC");
 
-    public KeyStore getKeyStore() {
-        return keyStore;
+        return factory.generatePublic(spec1);
     }
 }

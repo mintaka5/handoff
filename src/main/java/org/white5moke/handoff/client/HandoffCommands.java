@@ -1,15 +1,18 @@
 package org.white5moke.handoff.client;
 
+import io.leonard.Base58;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.white5moke.handoff.SignThis;
 import org.white5moke.handoff.doc.KeyDocument;
+import org.white5moke.handoff.doc.SigningDocument;
 import org.white5moke.handoff.doc.TheStore;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.NoSuchAlgorithmException;
+import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.sql.Date;
 import java.sql.SQLException;
@@ -185,7 +188,7 @@ public class HandoffCommands {
                     e.printStackTrace();
                 }
                 int docListSize = docList.size();
-                System.out.printf("list size: %d :: sel: %s :: selection: %d%n",
+                System.out.printf("<< list size: %d :: sel: %s :: selection: %d%n",
                         docListSize, sel, selection
                 );
                 if (selection >= 0 && selection < docListSize) {
@@ -207,6 +210,9 @@ public class HandoffCommands {
                                     Base64.getEncoder()
                                             .encodeToString(doc.getEncrypting().getKeyPair().getPublic().getEncoded())
                             );
+
+                            System.out.println(String.format("<< signature: %s",
+                                    Base64.getEncoder().encodeToString(doc.getSignature())));
                         } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
                             e.printStackTrace();
                         }
@@ -242,5 +248,67 @@ public class HandoffCommands {
 
     public void four0Four() {
         System.err.println("<< error 0x4 0x0 0x4. all your base belong to us!");
+    }
+
+    public void signIt(String msg) {
+        msg = msg.strip();
+
+        System.out.println(String.format("using key document: `%s` to sign the message `%s`",
+                getStore().getCurrentHash(),
+                msg
+                ));
+
+        Path filename = Path.of(getStore().getPath().toString(), getStore().getCurrentHash());
+        if(Files.exists(filename)) {
+            // get the signing private key
+            try {
+                KeyDocument doc = getStore().docToKeyDocument(filename);
+                KeyPair signPair = doc.getSigning().getKeyPair();
+
+                byte[] signature = SignThis.sign(msg.getBytes(StandardCharsets.UTF_8), signPair.getPrivate());
+                String pubS = Base64.getEncoder().encodeToString(signPair.getPublic().getEncoded());
+
+                System.out.printf("<< signature: %s%n<< public key (for verification): %s%n",
+                        Base58.encode(signature),
+                        Base58.encode(signPair.getPublic().getEncoded())
+                        );
+            } catch (NoSuchAlgorithmException | InvalidKeySpecException | InvalidKeyException |
+                    SignatureException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void verifyIt(String origMsg, String signedMsg, String publicKey) {
+        origMsg = origMsg.strip();
+        signedMsg = signedMsg.strip();
+        publicKey = publicKey.strip();
+
+        if(!origMsg.isEmpty() && !signedMsg.isEmpty() && !publicKey.isEmpty()) {
+            byte[] signedMsgBs = Base64.getDecoder().decode(signedMsg);
+
+            boolean isVerified = false;
+            try {
+                isVerified = SignThis.isValidSignature(
+                        origMsg.getBytes(StandardCharsets.UTF_8),
+                        SigningDocument.pubKeyFromBytes(Base64.getDecoder().decode(publicKey)),
+                        signedMsgBs
+                );
+            } catch (NoSuchAlgorithmException e) {
+                System.err.println("<< invalid signature algorithm was supplied. key could be corrupted.");
+            } catch (SignatureException e) {
+                System.err.println("<< message signature is invalid.");
+            } catch (InvalidKeySpecException | InvalidKeyException e) {
+                System.err.println("<< invalid public key was provided.");
+            }
+
+            if(isVerified) {
+                System.out.println("<< message signature is valid");
+            } else {
+                System.err.println("<< message signature cannot be verified");
+            }
+        } else {
+            System.err.println("<< verification requires message, signature, and public key in that order. `verify <message> <signature> <public key>`");
+        }
     }
 }
