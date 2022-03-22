@@ -43,7 +43,7 @@ public class Handoff implements Runnable {
 
             String userInput = scan.nextLine().strip();
 
-            String[] parseS = StringUtils.split(userInput, StringUtils.SPACE);
+            /*String[] parseS = StringUtils.split(userInput, StringUtils.SPACE);
 
             // skip over empties
             if(parseS.length <= 0) continue;
@@ -61,9 +61,11 @@ public class Handoff implements Runnable {
                 case "current", "cur" -> commands.currentDoc();
                 case "help" -> commands.helpMe(theMessage);
                 case "peek", "show", "deets", "view" -> commands.deets(theMessage);
-                case "copy" -> commands.copyIt(theMessage);
                 default -> commands.four0Four();
             }
+
+            */
+            System.out.println("<< test");
         }
     }
 

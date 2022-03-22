@@ -58,7 +58,6 @@ public class KeyDocument {
 
         String jsonS = toString();
         try {
-            System.out.println(Instant.now().toEpochMilli());
             byte[] jsonBs = SignThis.sign(
                     jsonS.getBytes(StandardCharsets.UTF_8),
                     getSigning().getKeyPair().getPrivate()

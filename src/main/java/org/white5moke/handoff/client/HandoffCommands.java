@@ -211,21 +211,17 @@ public class HandoffCommands {
                             e.printStackTrace();
                         }
                     } else {
-                        System.out.println("<x it seems your key document went missing. missing key document.");
+                        System.err.println("<< it seems your key document went missing. missing key document.");
                     }
                 } else {
-                    System.out.println("<x your selection is beyond the range of the document list.");
+                    System.err.println("<< your selection is beyond the range of the document list.");
                 }
             } else {
-                System.out.println("<x NaN. use `ls` or `list`");
+                System.err.println("<< NaN. use `ls` or `list`");
             }
         } else {
-            System.out.println("<x please, provide a number from the list command. `ls` or `list`");
+            System.err.println("<< please, provide a number from the list command. `ls` or `list`");
         }
-    }
-
-    public void copyIt(String theMessage) {
-
     }
 
     public void setScan(Scanner scan) {
@@ -245,6 +241,6 @@ public class HandoffCommands {
     }
 
     public void four0Four() {
-        System.err.println("<x error 0x4 0x0 0x4. all your base belong to us!");
+        System.err.println("<< error 0x4 0x0 0x4. all your base belong to us!");
     }
 }
