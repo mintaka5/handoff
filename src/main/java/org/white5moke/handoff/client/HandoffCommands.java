@@ -1,6 +1,5 @@
 package org.white5moke.handoff.client;
 
-import io.leonard.Base58;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.white5moke.handoff.SignThis;
@@ -12,13 +11,15 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.*;
+import java.security.InvalidKeyException;
+import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
+import java.security.SignatureException;
 import java.security.spec.InvalidKeySpecException;
 import java.sql.Date;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Scanner;
@@ -48,15 +49,6 @@ public class HandoffCommands {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-    }
-
-    public void nothingToDo() {
-        System.err.println("<x nothing to do.");
-    }
-
-    public void sayGoodbye() {
-        System.out.println("<< exiting...");
-        System.exit(0);
     }
 
     public void hashIt(String msg) {
@@ -141,24 +133,30 @@ public class HandoffCommands {
         } else {
             // list all
             // bye | exit | quit
-            System.out.printf("<< %1$-33s: close application.%n", "bye | exit | quit");
+            System.out.printf("<< %1$-34s: close application.%n", "bye | exit | quit");
             // cur | current
-            System.out.printf("<< %1$-33s: what is the current document being used?%n", "cur | current");
+            System.out.printf("<< %1$-34s: what is the current document being used?%n", "cur | current");
             // gen | generate
-            System.out.printf("<< %1$-33s: generate a new key document. add text after command, to include message.%n",
+            System.out.printf("<< %1$-34s: generate a new key document. add text after command, to include message.%n",
                     "gen | generate <string>?");
             // hash
-            System.out.printf("<< %1$-33s: provide a text string, get a sha256 hash of it.%n", "hash <string>");
+            System.out.printf("<< %1$-34s: provide a text string, get a sha256 hash of it.%n", "hash <string>");
             // help
-            System.out.printf("<< %1$-33s: list all available commands.%n", "help");
+            System.out.printf("<< %1$-34s: list all available commands.%n", "help");
             // ls | list | keys
-            System.out.printf("<< %1$-33s: get a list of all your key documents.%n", "ls | list | keys");
+            System.out.printf("<< %1$-34s: get a list of all your key documents.%n", "ls | list | keys");
+            // sign
+            System.out.printf("<< %1$-34s: sign any given message with currently active key document%n",
+                    "sign <random message>");
             // use | select | pick
             System.out.printf(
-                    "<< %1$-33s: set the default/current document to be used for things like signing or encrypting.%n",
+                    "<< %1$-34s: set the default/current document to be used for things like signing or encrypting.%n",
                     "use | select | pick <num>");
+            // verify
+            System.out.printf("<< %1$-34s: verify a signed message%n",
+                    "verify <orig msg> <sig> <pub key>");
             // view | peek | show | deets
-            System.out.printf("<< %1$-33s: provides some more details about the document.%n",
+            System.out.printf("<< %1$-34s: provides some more details about the document.%n",
                     "view | peek | show | deets <num>");
         }
     }
@@ -196,7 +194,7 @@ public class HandoffCommands {
 
                     if (docFile.toFile().exists()) {
                         try {
-                            KeyDocument doc = getStore().docToKeyDocument(docFile);
+                            KeyDocument doc = TheStore.docToKeyDocument(docFile);
                             System.out.println("<< hash: " + doc.getHash());
                             System.out.println("<< timestamp: " + formatter.format(
                                     Date.from(Instant.ofEpochMilli(doc.getTimestamp())))
@@ -234,10 +232,6 @@ public class HandoffCommands {
         this.scan = scan;
     }
 
-    public Scanner getScan() {
-        return scan;
-    }
-
     public TheStore getStore() {
         return store;
     }
@@ -253,24 +247,24 @@ public class HandoffCommands {
     public void signIt(String msg) {
         msg = msg.strip();
 
-        System.out.println(String.format("using key document: `%s` to sign the message `%s`",
+        System.out.printf("<< using key document: `%s` to sign the message `%s`%n",
                 getStore().getCurrentHash(),
                 msg
-                ));
+                );
 
         Path filename = Path.of(getStore().getPath().toString(), getStore().getCurrentHash());
         if(Files.exists(filename)) {
             // get the signing private key
             try {
-                KeyDocument doc = getStore().docToKeyDocument(filename);
+                KeyDocument doc = TheStore.docToKeyDocument(filename);
                 KeyPair signPair = doc.getSigning().getKeyPair();
 
                 byte[] signature = SignThis.sign(msg.getBytes(StandardCharsets.UTF_8), signPair.getPrivate());
                 String pubS = Base64.getEncoder().encodeToString(signPair.getPublic().getEncoded());
 
                 System.out.printf("<< signature: %s%n<< public key (for verification): %s%n",
-                        Base58.encode(signature),
-                        Base58.encode(signPair.getPublic().getEncoded())
+                        Base64.getEncoder().encodeToString(signature),
+                        Base64.getEncoder().encodeToString(signPair.getPublic().getEncoded())
                         );
             } catch (NoSuchAlgorithmException | InvalidKeySpecException | InvalidKeyException |
                     SignatureException e) {
@@ -279,36 +273,48 @@ public class HandoffCommands {
         }
     }
 
-    public void verifyIt(String origMsg, String signedMsg, String publicKey) {
-        origMsg = origMsg.strip();
-        signedMsg = signedMsg.strip();
-        publicKey = publicKey.strip();
+    public void verifyIt(String theMsg) {
+        theMsg = theMsg.strip();
 
-        if(!origMsg.isEmpty() && !signedMsg.isEmpty() && !publicKey.isEmpty()) {
-            byte[] signedMsgBs = Base64.getDecoder().decode(signedMsg);
+        String origMsg;
+        String signedMsg;
+        String publicKey;
 
-            boolean isVerified = false;
-            try {
-                isVerified = SignThis.isValidSignature(
-                        origMsg.getBytes(StandardCharsets.UTF_8),
-                        SigningDocument.pubKeyFromBytes(Base64.getDecoder().decode(publicKey)),
-                        signedMsgBs
-                );
-            } catch (NoSuchAlgorithmException e) {
-                System.err.println("<< invalid signature algorithm was supplied. key could be corrupted.");
-            } catch (SignatureException e) {
-                System.err.println("<< message signature is invalid.");
-            } catch (InvalidKeySpecException | InvalidKeyException e) {
-                System.err.println("<< invalid public key was provided.");
-            }
+        if(!theMsg.isEmpty()) {
+            String[] splitUp = StringUtils.split(theMsg, StringUtils.SPACE);
 
-            if(isVerified) {
-                System.out.println("<< message signature is valid");
+            if(splitUp.length == 3) {
+                origMsg = splitUp[0].strip();
+                signedMsg = splitUp[1].strip();
+                publicKey = splitUp[2].strip();
+
+                byte[] signedMsgBs = Base64.getDecoder().decode(signedMsg);
+
+                boolean isVerified = false;
+                try {
+                    isVerified = SignThis.isValidSignature(
+                            origMsg.getBytes(StandardCharsets.UTF_8),
+                            SigningDocument.pubKeyFromBytes(Base64.getDecoder().decode(publicKey)),
+                            signedMsgBs
+                    );
+
+                    if(isVerified) {
+                        System.out.println("<< message signature is valid");
+                    } else {
+                        System.err.println("<< message signature cannot be verified");
+                    }
+                } catch (NoSuchAlgorithmException e) {
+                    System.err.println("<< invalid signature algorithm was supplied. key could be corrupted.");
+                } catch (InvalidKeyException | InvalidKeySpecException e) {
+                    System.err.println("<< invalid public key was provided.");
+                } catch (SignatureException e) {
+                    System.err.println("<< message signature is invalid.");
+                }
             } else {
-                System.err.println("<< message signature cannot be verified");
+                System.err.println("<< 3 arguments required 1) original message, 2) signature, and 3) public key.");
             }
         } else {
-            System.err.println("<< verification requires message, signature, and public key in that order. `verify <message> <signature> <public key>`");
+            System.err.println("<< please provide 1) original message, 2) signature, and 3) public key.");
         }
     }
 }

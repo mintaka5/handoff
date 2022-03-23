@@ -31,7 +31,7 @@ public class TheStore {
         }
     }
 
-    public JSONObject docToJson(Path filename) {
+    public static JSONObject docToJson(Path filename) {
         String content = "";
         JSONObject json = null;
         try {
@@ -48,7 +48,14 @@ public class TheStore {
         return json;
     }
 
-    public KeyDocument docToKeyDocument(Path filename) throws NoSuchAlgorithmException, InvalidKeySpecException {
+    /**
+     * converts key document file to KeyDocument object
+     * @param filename Path of key document
+     * @return KeyDocument
+     * @throws NoSuchAlgorithmException
+     * @throws InvalidKeySpecException
+     */
+    public static KeyDocument docToKeyDocument(Path filename) throws NoSuchAlgorithmException, InvalidKeySpecException {
         JSONObject json = docToJson(filename);
         //System.out.println(json.toString(4));
         KeyDocument doc = null;

@@ -9,14 +9,16 @@ anonymously in any given environment.
 #### what can it do?
 
 ````shell
-bye | exit | quit                : close application.
-cur | current                    : what is the current document being used?
-gen | generate <string>?         : generate a new key document. add text after command, to include message.
-hash <string>                    : provide a text string, get a sha256 hash of it.
-help                             : list all available commands.
-ls | list | keys                 : get a list of all your key documents.
-use | select | pick <num>        : set the default/current document to be used for things like signing or encrypting.
-view | peek | show | deets <num> : provides some more details about the document.
+bye | exit | quit                 : close application.
+cur | current                     : what is the current document being used?
+gen | generate <string>?          : generate a new key document. add text after command, to include message.
+hash <string>                     : provide a text string, get a sha256 hash of it.
+help                              : list all available commands.
+ls | list | keys                  : get a list of all your key documents.
+sign <random message>             : sign any given message with currently active key document
+use | select | pick <num>         : set the default/current document to be used for things like signing or encrypting.
+verify <orig msg> <sig> <pub key> : verify a signed message
+view | peek | show | deets <num>  : provides some more details about the document.
 ````
 
 #### json document policy
@@ -27,6 +29,7 @@ view | peek | show | deets <num> : provides some more details about the document
   "timestamp": "[long] time of creation",
   "message": "[string] user-defined text message",
   "hash": "[string] a sha256 hash of entire key document",
+  "signature": "[string] base64-encoded ec signature of the whole document", 
   "signing": {
     "priv": "[string] base64-encoded ec private signing key",
     "pub": "[string] base64-encoded ec public key"

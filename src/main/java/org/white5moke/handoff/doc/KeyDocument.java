@@ -80,6 +80,12 @@ public class KeyDocument {
         this.signing = signing;
     }
 
+    public byte[] toPolicy() {
+        KeyPolicy policy = new KeyPolicy(this);
+
+        return policy.toBytes();
+    }
+
     public JSONObject toJson() {
         JSONObject j = new JSONObject();
         j.put(ENC_JSON_KEY, getEncrypting().toJson());

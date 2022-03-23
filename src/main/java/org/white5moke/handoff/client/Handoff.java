@@ -11,15 +11,15 @@ import java.sql.Date;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Scanner;
-import java.util.stream.Stream;
 
 public class Handoff implements Runnable {
     private Path userHome;
     private HandoffCommands commands;
     private Scanner scan;
     private TheStore store;
+
+    private boolean isRunning = false;
 
     public Handoff() {
         Security.setProperty("crypto.policy", "unlimited");
@@ -38,7 +38,9 @@ public class Handoff implements Runnable {
         // set a current doc hash if it's not set
         doCurrentCheck();
 
-        while(true) {
+        setRunning(true);
+
+        while(isRunning()) {
             System.out.print(">> ");
 
             String userInput = scan.nextLine().strip();
@@ -54,7 +56,11 @@ public class Handoff implements Runnable {
 
             switch (parseS[0].strip()) {
                 case "gen", "generate" -> commands.generateDocument(theMessage);
-                case "bye", "exit", "quit" -> commands.sayGoodbye();
+                case "bye", "exit", "quit" -> {
+                    setRunning(false);
+                    System.out.println("<< exiting...");
+                    System.exit(0);
+                }
                 case "hash" -> commands.hashIt(theMessage);
                 case "list", "ls", "keys" -> commands.listEm(getStore());
                 case "use", "select", "pick" -> commands.useIt(theMessage);
@@ -62,12 +68,7 @@ public class Handoff implements Runnable {
                 case "help" -> commands.helpMe(theMessage);
                 case "peek", "show", "deets", "view" -> commands.deets(theMessage);
                 case "sign" -> commands.signIt(theMessage);
-                case "verify" -> commands.verifyIt(
-                        theRest[0],
-                        theRest[1],
-                        StringUtils.join(Arrays.copyOfRange(theRest, 2, theRest.length)
-                        )
-                );
+                case "verify" -> commands.verifyIt(theMessage);
                 default -> commands.four0Four();
             }
         }
@@ -79,9 +80,7 @@ public class Handoff implements Runnable {
     private void doCurrentCheck() {
         Path file = null;
         try {
-            file = Files.list(getUserHome())
-                    .sorted((a, b) -> Long.compare(b.toFile().lastModified(), a.toFile().lastModified()))
-                    .findFirst().orElse(null);
+            file = Files.list(getUserHome()).min((a, b) -> Long.compare(b.toFile().lastModified(), a.toFile().lastModified())).orElse(null);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -131,5 +130,13 @@ public class Handoff implements Runnable {
 
     public void setStore(TheStore store) {
         this.store = store;
+    }
+
+    public boolean isRunning() {
+        return isRunning;
+    }
+
+    public void setRunning(boolean running) {
+        isRunning = running;
     }
 }
