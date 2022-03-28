@@ -1,12 +1,12 @@
 package org.white5moke.handoff.doc;
 
-import org.apache.commons.codec.binary.StringUtils;
-
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
-import java.util.Arrays;
 
 public class KeyPolicy {
     private static final int TAG_LEN = 8;
@@ -16,11 +16,7 @@ public class KeyPolicy {
     private KeyDocument keyDocument;
 
     public KeyPolicy(KeyDocument keyDocument) {
-        setKetDocument(keyDocument);
-    }
-
-    public void setKetDocument(KeyDocument keyDocument) {
-        this.keyDocument = keyDocument;
+        setKeyDocument(keyDocument);
     }
 
     public KeyDocument getKeyDocument() {
@@ -34,27 +30,16 @@ public class KeyPolicy {
     public byte[] toBytes() {
         KeyDocument doc = getKeyDocument();
 
-        byte[] tagBs = new byte[TAG_LEN];
-        byte[] sigBs = new byte[SIG_LEN];
-        byte[] hashBs = new byte[HASH_LEN];
+        ByteBuffer timeBs = ByteBuffer.allocate(Long.BYTES).putLong(doc.getTimestamp());
+        ByteBuffer hashBs = ByteBuffer.allocate(TAG_LEN).put(doc.getTag().getBytes(StandardCharsets.UTF_8));
+        ByteBuffer sigBs = ByteBuffer.allocate(SIG_LEN).put(doc.getSignature());
 
-        ByteBuffer buffer = ByteBuffer.allocate(
-                Long.BYTES
-                + tagBs.length
-                + sigBs.length
-                + hashBs.length
-        );
-
-        tagBs = StringUtils.getBytesUtf8(doc.getTag());
-        sigBs = doc.getSignature();
-        hashBs = StringUtils.getBytesUtf8(doc.getHash());
-
-        buffer.putLong(doc.getTimestamp())
-                .put(tagBs)
-                .put(sigBs)
-                .put(hashBs);
-
-        return buffer.array();
+        int addEmUp = HASH_LEN + SIG_LEN + TAG_LEN + Long.BYTES;
+        return ByteBuffer.allocate(addEmUp)
+                .put(timeBs.array())
+                .put(hashBs.array())
+                .put(sigBs.array())
+                .array();
     }
 
     @Override
@@ -63,21 +48,30 @@ public class KeyPolicy {
     }
 
     public static void main(String[] args) {
-        Arrays.asList(
-                "7d277f79a7322352d774f51157a8a08e75811bba97d6c00122a2fc9b8d31bc9f",
-                "faaaee724b4577779be1784ebbe676a70fa33c5cb2893840f50796f7bb667ef3",
-                "18e077bed0c92567df23db34be8fa72fcb22a08e578d23ddd403047f648665e8"
-        ).forEach(h -> {
-            Path keyDocFilename = Path.of(System.getProperty("user.home"), ".handoff", h);
-            try {
-                KeyDocument doc = TheStore.docToKeyDocument(keyDocFilename);
-                KeyPolicy policy = new KeyPolicy(doc);
-                String policyS = new String(policy.toBytes());
-                System.out.println(policyS);
-                System.out.println(policy.toBytes().length);
-            } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-                e.printStackTrace();
-            }
-        });
+        try {
+            Files.list(Path.of(System.getProperty("user.home"), ".handoff")).forEach(filename -> {
+                try {
+                    KeyDocument doc = TheStore.docToKeyDocument(filename);
+                    KeyPolicy policy = new KeyPolicy(doc);
+                    /*System.out.println("-----");
+                    System.out.println(doc.getHash() + " [" + doc.getHash().getBytes().length + "]");
+                    System.out.println(doc.getTimestamp() + " [" + Long.BYTES + "]");
+                    System.out.println(doc.getMessage() + " [" + doc.getMessage().getBytes().length + "]");
+                    System.out.println(doc.getTag() + " [" + doc.getTag().getBytes().length + "]");
+                    System.out.println(Base64.getEncoder().encodeToString(doc.getSignature()) + " [" + doc.getSignature().length + "]");
+                    System.out.println("-----");*/
+                    byte[] encodedPolicy = policy.toBytes();
+                    System.out.println(
+                            new String(encodedPolicy, StandardCharsets.UTF_8)
+                                    + " byte len. [" + policy.toBytes().length
+                                    + "]"
+                    );
+                } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+                    e.printStackTrace();
+                }
+            });
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
