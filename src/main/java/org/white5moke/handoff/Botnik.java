@@ -1,63 +1,84 @@
 package org.white5moke.handoff;
 
+import org.apache.commons.codec.digest.DigestUtils;
+
+import java.awt.desktop.OpenFilesEvent;
+import java.awt.desktop.OpenFilesHandler;
+import java.awt.font.OpenType;
+import java.io.*;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.OpenOption;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.util.Scanner;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class Botnik implements Runnable {
     private final Scanner scanner = new Scanner(System.in);
-    private static ExecutorService exec = Executors.newSingleThreadExecutor();
+    private Path storagePath;
 
-    public Botnik() {
+    public Botnik(Path path) {
+        storagePath = path;
 
+        if(!Files.exists(storagePath.getParent())) {
+            try {
+                Files.createDirectories(path.getParent());
+                Files.createFile(storagePath);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     @Override
     public void run() {
-        while(scanner.hasNext()) {
+        System.out.print(">> ");
+
+        while(scanner.hasNext() && !scanner.next().equals("exit")) {
             Instant now = Instant.now();
             String tag = Utilities.randomID(4);
 
-            if(scanner.next().equals("exit")) break;
-
             // operate
-            System.out.print(">> ");
             String input = scanner.next().strip();
+            String inHash = DigestUtils.sha256Hex(input.getBytes(StandardCharsets.UTF_8)); // hash it for authenticity
+            try {
+                store(Instant.now(), inHash, input);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
 
-            respond(input);
+            System.out.print(">> ");
         }
         System.out.println("bye x.x");
         System.exit(0);
     }
 
+    private void store(Instant now, String inHash, String input) throws IOException {
+        ByteBuffer nowBB = ByteBuffer.allocate(Long.BYTES+1);
+        ByteBuffer hashBB = ByteBuffer.allocate(64+1);
+        ByteBuffer inBB = ByteBuffer.allocate(input.length()+1);
+
+        nowBB.putLong(now.toEpochMilli());
+        hashBB.put(DigestUtils.sha256(input));
+        inBB.put(input.getBytes(StandardCharsets.UTF_8));
+
+        ByteBuffer rowBB = ByteBuffer.allocate(nowBB.capacity() + hashBB.capacity() + inBB.capacity());
+        rowBB.put(nowBB.array()).put(hashBB.array()).put(inBB.array());
+
+        FileOutputStream io = new FileOutputStream(storagePath.toFile(), true);
+        io.write(rowBB.array());
+        io.close();
+    }
+
     private void respond(String input) {
-        Training training = new Training(input);
+
     }
 
     public static void main(String[] args) {
-        exec = Executors.newSingleThreadExecutor();
-        exec.execute(new Botnik());
+        Thread botThread = new Thread(new Botnik(Path.of(System.getProperty("user.home"), ".botnik", "stowage")));
+        botThread.start();
     }
 }
 
-class Training implements Runnable {
-    private String input;
-
-    public Training(String input) {
-        setInput(input);
-    }
-
-    public String getInput() {
-        return input;
-    }
-
-    public void setInput(String input) {
-        this.input = input;
-    }
-
-    @Override
-    public void run() {
-
-    }
-}

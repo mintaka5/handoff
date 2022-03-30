@@ -43,12 +43,6 @@
             <artifactId>base58</artifactId>
             <version>0.0.2</version>
         </dependency>
-        <dependency>
-            <groupId>org.apache.opennlp</groupId>
-            <artifactId>opennlp-tools</artifactId>
-            <version>1.9.4</version>
-        </dependency>
-
 
         <!-- maven specific dependencies -->
         <dependency>
